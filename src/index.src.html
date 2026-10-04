@@ -1,0 +1,647 @@
+<title>Formeleditor für Papa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/*@@MLFONTS@@*/
+/* Layout: one working column, like a lab notebook page: tools on top, input in the middle, the printed result below on a sheet of paper. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --fg: #16202b;
+  --muted: #55606d;
+  --line: #c9d1da;
+  --accent: #23468f;
+  --accent-soft: #dfe6f4;
+  --accent-fg: #ffffff;
+  --paper: #ffffff;
+  --paper-ink: #111111;
+  --paper-edge: #d5dbe2;
+  --focus: #e0a100;
+  --f-ui: "Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+  --f-head: "Newsreader", Georgia, "Times New Roman", serif;
+  --s-0: 1rem; --s-1: 1.125rem; --s-2: 1.375rem; --s-3: 1.75rem; --s-4: 2.4rem;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d; --surface: #1b232d; --fg: #e8edf3; --muted: #a3afbd; --line: #33404f;
+    --accent: #8fb0f2; --accent-soft: #24324a; --accent-fg: #0d1522;
+    --paper: #fbfbf9; --paper-ink: #111111; --paper-edge: #3a4553; --focus: #f2c14e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d; --surface: #1b232d; --fg: #e8edf3; --muted: #a3afbd; --line: #33404f;
+  --accent: #8fb0f2; --accent-soft: #24324a; --accent-fg: #0d1522;
+  --paper: #fbfbf9; --paper-ink: #111111; --paper-edge: #3a4553; --focus: #f2c14e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: var(--s-1); line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+header h1 { font-family: var(--f-head); font-weight: 600; font-size: var(--s-4); line-height: 1.1; margin: 0; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.label { font-size: var(--s-0); font-weight: 700; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0; }
+
+/* Tabs for the tool rows */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab { font: inherit; font-size: var(--s-1); font-weight: 700; padding: 10px 18px; border-radius: 999px; border: 2px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.tool { font: inherit; display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 84px; padding: 8px 4px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--fg); cursor: pointer; }
+.tool:hover { border-color: var(--accent); background: var(--accent-soft); }
+.tool .g > span.w { display: inline-block; }
+.tool .g { font-family: "Times New Roman", "STIX Two Math", serif; font-size: 1.9rem; line-height: 1; min-height: 2.1rem; display: flex; align-items: center; justify-content: center; }
+.tool .g i { font-style: italic; }
+.tool .n { font-size: .95rem; color: var(--muted); text-align: center; line-height: 1.2; }
+.tools.sym { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+.tools.sym .tool { min-height: 64px; }
+.tools.sym .tool:has(.n) { grid-column: span 2; }
+.sl { position: relative; display: inline-block; }
+.sl > span { position: absolute; left: .12em; top: .3em; width: .34em; border-top: .07em solid currentColor; transform: rotate(-35deg); }
+.sl.lb > span { left: .14em; top: .22em; width: .3em; transform: none; }
+.fr { display: inline-grid; justify-items: center; font-size: 1.1rem; line-height: 1.05; }
+.fr span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 3px; }
+button:focus-visible, .tab:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Input */
+#mfwrap { min-width: 0; }
+#mfwrap math-field { display: block; width: 100%; max-width: 100%; overflow-x: auto; font-size: 2.4rem; padding: 14px 16px; border: 2px solid var(--line); border-radius: var(--r); background: var(--surface); color: var(--fg); min-height: 96px;
+  --caret-color: var(--accent); --selection-background-color: var(--accent-soft); --contains-highlight-background-color: transparent; --primary-color: var(--accent); }
+#mfwrap math-field:focus-within { border-color: var(--accent); outline: 3px solid var(--focus); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { font: inherit; font-weight: 700; padding: 10px 16px; border-radius: var(--r); border: 2px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+
+/* Settings */
+.settings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .settings { grid-template-columns: 1fr; } #mfwrap math-field { font-size: 1.6rem; } }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: inherit; padding: 10px 14px; border-radius: var(--r); border: 2px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; text-align: left; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.seg small { display: block; color: var(--muted); font-size: .9rem; font-weight: 400; }
+
+/* Paper */
+.paper { background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-edge); border-radius: 4px; box-shadow: 0 1px 0 var(--paper-edge), 0 10px 24px rgba(0,0,0,.08); padding: 4px; min-width: 0; }
+.paper iframe { display: block; width: 100%; border: 0; height: 260px; background: var(--paper); }
+.hint { color: var(--muted); font-size: var(--s-0); margin: 0; }
+
+/* Samples */
+.samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.sample { font: inherit; text-align: left; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; display: grid; gap: 2px; }
+.sample:hover { border-color: var(--accent); }
+.sample b { font-variant-numeric: tabular-nums; }
+.sample span { color: var(--muted); font-size: var(--s-0); }
+.copyrow { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.sizes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sizes .seg button { min-width: 3.4em; text-align: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-size: var(--s-2); padding: 12px 22px; }
+.btn.primary:hover { filter: brightness(1.08); }
+#copymsg.ok { color: var(--fg); font-weight: 700; }
+.linkbtn { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.fbimg { background: var(--paper); border: 1px solid var(--paper-edge); padding: 12px; border-radius: 4px; overflow-x: auto; }
+.zoomrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 12px; font-weight: 700; }
+.zoomrow input { flex: 1 1 200px; min-width: 0; accent-color: var(--accent); height: 32px; }
+.zoomrow output { min-width: 4.5ch; text-align: right; font-variant-numeric: tabular-nums; }
+details summary { cursor: pointer; color: var(--muted); font-size: var(--s-0); }
+details code { display: block; white-space: pre-wrap; word-break: break-all; font-size: .9rem; background: var(--bg); padding: 8px; border-radius: 6px; margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Formeleditor</h1>
+    <p>Formel aus den Bausteinen zusammensetzen oder direkt tippen. Unten erscheint sie so, wie sie später im Word-Dokument gedruckt wird.</p>
+  </header>
+
+  <section class="panel" aria-label="Bausteine">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-aufbau" aria-selected="true" data-tab="aufbau">Aufbau</button>
+      <button class="tab" role="tab" id="tab-greek" aria-selected="false" data-tab="greek">Griechisch</button>
+      <button class="tab" role="tab" id="tab-zeichen" aria-selected="false" data-tab="zeichen">Zeichen</button>
+    </div>
+    <div id="tools" class="tools"></div>
+  </section>
+
+  <section class="panel" aria-label="Eingabe">
+    <p class="label">Eingabe</p>
+    <div id="mfwrap"></div>
+    <div class="row">
+      <button class="btn" id="undo" type="button">Rückgängig</button>
+      <button class="btn" id="redo" type="button">Wiederholen</button>
+      <button class="btn" id="clear" type="button">Neue Formel</button>
+      <button class="btn" id="fromword" type="button">Formel aus Word holen</button>
+    </div>
+    <p class="hint" id="pastemsg" role="status">Zum Ändern einer Formel: in Word die Formel anklicken, ⌘C drücken, dann hier „Formel aus Word holen“ (oder ins Eingabefeld klicken und ⌘V).</p>
+    <p class="hint">Tipp: Ein Schrägstrich / beim Tippen macht einen Bruch, ^ eine Hochzahl, _ einen Index. Mit den Pfeiltasten wechselt man zwischen Zähler, Nenner und den übrigen Feldern.</p>
+  </section>
+
+  <section class="panel" aria-label="Darstellung">
+    <div class="settings">
+      <div>
+        <p class="label">Darstellung</p>
+        <div class="seg" id="mode">
+          <button type="button" id="mode-sci" data-mode="sci" aria-pressed="true">Wissenschaftlich<small>Brüche übereinander</small></button>
+          <button type="button" id="mode-lin" data-mode="lin" aria-pressed="false">Einzeilig<small>Brüche mit Schrägstrich, für den Fließtext</small></button>
+        </div>
+      </div>
+      <div>
+        <p class="label">Schrift</p>
+        <div class="seg" id="fonts"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Ergebnis">
+    <p class="label">So sieht es im Dokument aus</p>
+    <div class="zoomrow"><label for="zoom">Vorschau vergrößern</label>
+      <input type="range" id="zoom" min="100" max="400" step="25" value="200">
+      <output id="zoomval" for="zoom">200 %</output></div>
+    <div class="paper"><iframe id="out" title="Druckvorschau der Formel"></iframe></div>
+    <div class="copyrow">
+      <button class="btn primary" id="copy" type="button">Formel kopieren</button>
+      <div class="sizes"><span class="hint">Schriftgröße im Dokument:</span>
+        <div class="seg" id="sizes"></div>
+      </div>
+    </div>
+    <p class="hint" id="copymsg" role="status">Danach in Word an die gewünschte Stelle klicken und ⌘V drücken.</p>
+    <p class="hint">Falls Word nach dem Einfügen nichts anzeigt: <button class="linkbtn" id="copypng" type="button">nur als Bild kopieren</button></p>
+    <div id="fallback" hidden>
+      <p class="hint">Der Browser hat das direkte Kopieren blockiert. So geht es trotzdem: mit der rechten Maustaste (oder Control-Klick) auf die Formel unten klicken und „Bild kopieren“ wählen.</p>
+      <div class="fbimg"><img id="fbimg" alt=""></div>
+    </div>
+    <details><summary>Technischer Quelltext (nur für Jens)</summary><code id="src"></code></details>
+  </section>
+
+  <section class="panel" aria-label="Beispiele">
+    <p class="label">Beispiele aus dem Manuskript</p>
+    <p class="hint">Diese Formeln wurden aus dem alten Word-Dokument ausgelesen. Antippen lädt sie zum Bearbeiten.</p>
+    <div class="samples" id="samples"></div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mathlive@0.111.0/mathlive.min.js"></script>
+<script>
+const SAMPLES = /*@@SAMPLES@@*/;
+const FONTS = [
+  {id: 'stix2', name: 'STIX Two', note: 'passt zu Times New Roman'},
+  {id: 'termes', name: 'Termes', note: 'Times-ähnlich, zart'},
+  {id: 'newcm', name: 'Computer Modern', note: 'klassischer LaTeX-Look'},
+  {id: 'pagella', name: 'Pagella', note: 'Palatino-ähnlich'},
+  {id: 'schola', name: 'Schola', note: 'Schulbuch-Look'},
+  {id: 'bonum', name: 'Bonum', note: 'Bookman-ähnlich, breit und kräftig'},
+  {id: 'fira', name: 'Fira', note: 'ohne Serifen, modern'},
+  {id: 'dejavu', name: 'DejaVu', note: 'ohne Serifen, breit'}
+];
+const MJ = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3';
+const LAMBDASLASH = '{\\rlap{\\kern0.06em\\raise{0.44em}{\\scriptscriptstyle\\enclose{updiagonalstrike}{\\phantom{\\rule{0.12em}{0.05em}}}}}\\lambda\\kern-0.07em}';
+const HBARH = '{\\rlap{\\kern0.07em\\rule[0.52em]{0.36em}{0.042em}}h}';
+const HSLASHD = '{\\rlap{\\kern0.10em\\raise{0.40em}{\\scriptscriptstyle\\enclose{updiagonalstrike}{\\phantom{\\rule{0.05em}{0.02em}}}}}h}';
+const LAMBDABAR = '{\\rlap{\\kern0.17em\\rule[0.43em]{0.33em}{0.042em}}\\lambda\\kern-0.07em}';
+
+const TOOLS = {
+  aufbau: [
+    {g: '<span class="fr"><span><i>a</i></span><span><i>b</i></span></span>', n: 'Bruch', ins: '\\frac{#@}{#?}'},
+    {g: '<i>x</i><sup>n</sup>', n: 'Hochzahl', ins: '#@^{#?}'},
+    {g: '<i>x</i><sub>n</sub>', n: 'Index', ins: '#@_{#?}'},
+    {g: '<i>x</i><span style="display:inline-grid;font-size:.55em;line-height:1;vertical-align:middle;margin-left:.05em"><span>2</span><span>n</span></span>', n: 'Index und Hochzahl', ins: '#@_{#?}^{#?}'},
+    {g: '√<span style="border-top:1.5px solid currentColor"><i>x</i></span>', n: 'Wurzel', ins: '\\sqrt{#@}'},
+    {g: '<sup style="font-size:.6em">n</sup>√<span style="border-top:1.5px solid currentColor"><i>x</i></span>', n: 'n-te Wurzel', ins: '\\sqrt[#?]{#@}'},
+    {g: '( )', n: 'Runde Klammern', ins: '\\left(#@\\right)'},
+    {g: '[ ]', n: 'Eckige Klammern', ins: '\\left[#@\\right]'},
+    {g: '{ }', n: 'Geschweifte Klammern', ins: '\\left\\{#@\\right\\}'},
+    {g: '| |', n: 'Betrag', ins: '\\left|#@\\right|'},
+    {g: '∑', n: 'Summe', ins: '\\sum_{#?}^{#?}#?'},
+    {g: '∏', n: 'Produkt', ins: '\\prod_{#?}^{#?}#?'},
+    {g: '∫', n: 'Integral', ins: '\\int_{#?}^{#?}#?\\,\\mathrm{d}#?'},
+    {g: '∮', n: 'Ringintegral', ins: '\\oint #?\\,\\mathrm{d}#?'},
+    {g: '<span style="font-size:.7em">lim</span>', n: 'Grenzwert', ins: '\\lim_{#?\\to #?}#?'},
+    {g: '<span class="fr"><span>d</span><span>d<i>x</i></span></span>', n: 'Ableitung', ins: '\\frac{\\mathrm{d}#?}{\\mathrm{d}#?}'},
+    {g: '<span class="fr"><span>∂</span><span>∂<i>x</i></span></span>', n: 'Partielle Ableitung', ins: '\\frac{\\partial #?}{\\partial #?}'},
+    {g: '|<sub style="font-size:.5em">a</sub><sup style="font-size:.5em;margin-left:-.4em">b</sup>', n: 'Auswerte­strich', ins: '\\left.#@\\right|_{#?}^{#?}'},
+    {g: '<span style="display:inline-grid;line-height:.7;justify-items:center"><span style="font-size:.6em">→</span><i>x</i></span>', n: 'Vektorpfeil', ins: '\\vec{#@}'},
+    {g: '<i>x̄</i>', n: 'Querstrich', ins: '\\overline{#@}'},
+    {g: '<i>x̂</i>', n: 'Dach', ins: '\\hat{#@}'},
+    {g: '<i>ẋ</i>', n: 'Punkt', ins: '\\dot{#@}'},
+    {g: '<b>A</b>', n: 'Fett (Vektor)', ins: '\\mathbf{#@}'},
+    {g: '<span style="font-size:.6em">sin</span>', n: 'Sinus', ins: '\\sin '},
+    {g: '<span style="font-size:.6em">cos</span>', n: 'Kosinus', ins: '\\cos '},
+    {g: '<span style="font-size:.6em">ln</span>', n: 'Logarithmus', ins: '\\ln '},
+    {g: '<span style="font-size:.6em">exp</span>', n: 'Exponential', ins: '\\exp '},
+    {g: '<span style="font-size:.55em">Text</span>', n: 'Normaler Text', ins: '\\mathrm{#@}'}
+  ],
+  greek: 'α:alpha β:beta γ:gamma δ:delta ε:varepsilon ζ:zeta η:eta θ:theta ϑ:vartheta κ:kappa λ:lambda μ:mu ν:nu ξ:xi π:uppi ρ:rho σ:sigma τ:tau φ:varphi ϕ:phi χ:chi ψ:psi ω:omega Γ:Gamma Δ:Delta Θ:Theta Λ:Lambda Ξ:Xi Π:Pi Σ:Sigma Φ:Phi Ψ:Psi Ω:Omega'
+    .split(' ').map(p => { const [g, c] = p.split(':'); return {g, ins: '\\' + c + ' ', sym: true}; }),
+  zeichen: [
+    ['<i>ħ</i>','\\hbar ','h, Strich waagerecht'],['<span class="sl"><i>h</i><span></span></span>','\\hslash ','h, Strich schräg'],
+    ['<span class="sl lb"><i>λ</i><span></span></span>','\\lambdabar ','λ, Strich waagerecht'],['<i>ƛ</i>','\\lambdaslash ','λ, Strich schräg'],['∂','\\partial '],['∇','\\nabla '],['∞','\\infty '],['±','\\pm '],['∓','\\mp '],
+    ['·','\\cdot '],['×','\\times '],['=','='],['≈','\\approx '],['≠','\\ne '],['≡','\\equiv '],['∼','\\sim '],['∝','\\propto '],
+    ['<','<'],['>','>'],['≤','\\le '],['≥','\\ge '],['≪','\\ll '],['≫','\\gg '],['→','\\to '],['⇒','\\Rightarrow '],['⇔','\\Leftrightarrow '],
+    ['∈','\\in '],['°','^{\\circ}'],['′',"'"],['∗','^{\\ast}'],['⋯','\\cdots '],['…','\\ldots '],['⊥','\\perp '],['∥','\\parallel '],['Å','\\mathrm{Å}']
+  ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true}))
+};
+
+const ADDIN = /*@@ADDIN@@*/false;
+let mf, mode = 'sci', font = 'stix2', sizePt = 12, zoom = ADDIN ? 125 : 200;
+try { font = localStorage.getItem('fe-font') || font; mode = localStorage.getItem('fe-mode') || mode; } catch (e) {}
+
+/* ---------- LaTeX transformation: scientific vs. one-line ---------- */
+function parse(s) {
+  let i = 0;
+  function seq(end) {
+    const out = [];
+    while (i < s.length) {
+      const c = s[i];
+      if (c === end) { i++; return out; }
+      if (c === '{') { i++; out.push({t: 'g', c: seq('}')}); continue; }
+      if (c === '\\') {
+        let j = i + 1;
+        if (/[a-zA-Z]/.test(s[j] || '')) { while (j < s.length && /[a-zA-Z]/.test(s[j])) j++; }
+        else j++;
+        out.push({t: 'c', v: s.slice(i + 1, j)}); i = j;
+        while (s[i] === ' ' && /[a-zA-Z]$/.test(out[out.length - 1].v)) i++;
+        continue;
+      }
+      if (c === ' ') { i++; continue; }
+      out.push({t: 'h', v: c}); i++;
+    }
+    return out;
+  }
+  return seq(null);
+}
+function ser(nodes) {
+  return nodes.map(n => n.t === 'g' ? '{' + ser(n.c) + '}' : n.t === 'c' ? '\\' + n.v + (/[a-zA-Z]$/.test(n.v) ? ' ' : '') : n.t === 'raw' ? n.v : n.v).join('');
+}
+const FRAC = new Set(['frac', 'dfrac', 'tfrac']);
+const BIGOP = new Set(['sum', 'prod', 'coprod', 'bigcup', 'bigcap']);
+const SPACE = new Set([',', ';', ':', '!', ' ', 'quad', 'qquad']);
+const ARG1 = new Set(['sqrt', 'mathrm', 'mathbf', 'vec', 'hat', 'bar', 'overline', 'dot', 'ddot', 'tilde', 'text', 'operatorname', 'mathit']);
+function argOf(nodes, k) { return nodes[k] ? (nodes[k].t === 'g' ? nodes[k].c : [nodes[k]]) : []; }
+function countItems(nodes) {
+  let n = 0, i = 0;
+  while (i < nodes.length) {
+    const x = nodes[i];
+    if (x.t === 'h' && (x.v === '^' || x.v === '_')) { i += 2; continue; }
+    if (x.t === 'c' && SPACE.has(x.v)) { i++; continue; }
+    if (x.t === 'c' && x.v === 'left') {
+      let d = 0;
+      for (; i < nodes.length; i++) {
+        if (nodes[i].t === 'c' && nodes[i].v === 'left') d++;
+        if (nodes[i].t === 'c' && nodes[i].v === 'right') { d--; if (d === 0) { i += 2; break; } }
+      }
+      n++; continue;
+    }
+    if (x.t === 'h' && /[0-9.]/.test(x.v)) { while (i < nodes.length && nodes[i].t === 'h' && /[0-9.]/.test(nodes[i].v)) i++; n++; continue; }
+    if (x.t === 'c' && FRAC.has(x.v)) { i += 3; n++; continue; }
+    if (x.t === 'c' && ARG1.has(x.v)) { i++; if (nodes[i] && nodes[i].t === 'h' && nodes[i].v === '[') { while (i < nodes.length && !(nodes[i].t === 'h' && nodes[i].v === ']')) i++; i++; } i++; n++; continue; }
+    n++; i++;
+  }
+  return n;
+}
+function hasTopOp(nodes) { return nodes.some(x => (x.t === 'h' && '+-=<>'.includes(x.v)) || (x.t === 'c' && ['pm', 'mp', 'approx', 'le', 'ge', 'ne'].includes(x.v))); }
+function tf(nodes, m, script) {
+  const out = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const x = nodes[i];
+    if (x.t === 'c' && FRAC.has(x.v)) {
+      const num = argOf(nodes, i + 1), den = argOf(nodes, i + 2); i += 2;
+      if (m === 'lin') {
+        let a = ser(tf(num, m, script)), b = ser(tf(den, m, script));
+        if (hasTopOp(num)) a = '(' + a + ')';
+        if (countItems(den) > 1) b = '(' + b + ')';
+        out.push({t: 'raw', v: '{' + a + '/' + b + '}'});
+      } else {
+        const cmd = (m === 'sci' && !script) ? '\\dfrac' : '\\frac';
+        out.push({t: 'raw', v: cmd + '{' + ser(tf(num, m, script)) + '}{' + ser(tf(den, m, script)) + '}'});
+      }
+      continue;
+    }
+    if (x.t === 'h' && (x.v === '^' || x.v === '_')) {
+      out.push(x);
+      if (nodes[i + 1]) { const a = nodes[++i]; out.push(a.t === 'g' ? {t: 'g', c: tf(a.c, m, true)} : a); }
+      continue;
+    }
+    if (x.t === 'c' && x.v === 'left') {
+      let d = 0, j = i;
+      for (; j < nodes.length; j++) {
+        if (nodes[j].t === 'c' && nodes[j].v === 'left') d++;
+        if (nodes[j].t === 'c' && nodes[j].v === 'right') { d--; if (d === 0) { j++; break; } }
+      }
+      const inner = nodes.slice(i, j + 1); i = j;
+      const body = tf(inner.slice(2, inner.length - 2), m, script);
+      out.push({t: 'raw', v: '{' + ser(inner.slice(0, 2)) + ser(body) + ser(inner.slice(inner.length - 2)) + '}'});
+      continue;
+    }
+    if (x.t === 'c' && BIGOP.has(x.v) && m === 'sci' && !script) {
+      out.push(x);
+      if (!(nodes[i + 1] && nodes[i + 1].t === 'c' && /limits/.test(nodes[i + 1].v))) out.push({t: 'c', v: 'limits'});
+      continue;
+    }
+    if (x.t === 'g') { out.push({t: 'g', c: tf(x.c, m, script)}); continue; }
+    out.push(x);
+  }
+  return out;
+}
+function prep(tex) {
+  return tex.replace(/\\hbar(?![a-zA-Z])/g, '\\hbarh').replace(/\\hslash(?![a-zA-Z])/g, '\\hslashd').replace(/\\unicode\{["x]?0?19[Bb]\}|ƛ/g, '\\lambdabar ').replace(/\\char"019B/g, '\\lambdabar ');
+}
+function render(tex, m, display) {
+  const t = ser(tf(parse(prep(tex)), m, false));
+  return (display && m === 'sci') ? '\\displaystyle ' + t : t;
+}
+
+/* ---------- Preview frame (one MathJax per font) ---------- */
+function frameDoc(fontId) {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;background:#fff;color:#111;font-family:"Times New Roman",Times,"STIX Two Text",serif;font-size:20px}
+  .page{padding:22px 34px 26px}
+  .lbl{font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;margin:0 0 6px}
+  .eq{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin:4px 0 22px;min-height:40px}
+  .eq .f{grid-column:2;overflow-x:auto;max-width:100%;padding:.15em 0}
+  .eq .no{grid-column:3;justify-self:end;padding-left:12px}
+  p.txt{line-height:1.5;margin:0;max-width:60ch}
+  mjx-container{color:#111}
+  .wait{color:#888;font:14px Arial,sans-serif}
+  </style>
+  <script>
+  window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}'}},
+   tex:{packages:{'[+]':['upgreek','enclose']},macros:{lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
+   output:{font:'mathjax-${fontId}',linebreaks:{inline:false}},
+   svg:{fontCache:'local'},
+   startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};
+  window.__zoom=function(z){document.documentElement.style.fontSize=(20*z)+'px';document.body.style.fontSize=(20*z)+'px';
+    parent.postMessage({fe:'h',h:document.body.scrollHeight},'*');};
+  window.__show=function(disp,inl){
+    if(!window.__mjReady){window.__pending=[disp,inl];return;}
+    const d=document;
+    d.getElementById('f').innerHTML='';d.getElementById('i').innerHTML='';
+    window.__done=MathJax.tex2svgPromise(disp,{display:false}).then(n=>{d.getElementById('f').appendChild(n);
+      return MathJax.tex2svgPromise(inl,{display:false});}).then(n=>{d.getElementById('i').appendChild(n);
+      parent.postMessage({fe:'h',h:d.body.scrollHeight},'*');}).catch(e=>{d.getElementById('f').textContent='Diese Formel lässt sich noch nicht setzen.';});
+  };
+  window.__png=function(pt){
+    return Promise.resolve(window.__done).then(()=>{
+      const svg=document.querySelector('#f svg');
+      if(!svg) throw new Error('keine Formel');
+      const vb=svg.getAttribute('viewBox').trim().split(' ').map(Number);
+      const wpt=vb[2]/1000*pt, hpt=vb[3]/1000*pt, dpt=(vb[1]+vb[3])/1000*pt;
+      const dpi=600, wpx=Math.ceil(wpt/72*dpi), hpx=Math.ceil(hpt/72*dpi);
+      const c=svg.cloneNode(true);
+      c.removeAttribute('style'); c.setAttribute('width',wpx); c.setAttribute('height',hpx);
+      c.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      const txt=new XMLSerializer().serializeToString(c).replace(/currentColor/g,'#000000');
+      const v=svg.cloneNode(true); v.removeAttribute('style'); v.setAttribute('width',wpt.toFixed(3)+'pt'); v.setAttribute('height',hpt.toFixed(3)+'pt');
+      v.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      const svgText=new XMLSerializer().serializeToString(v).replace(/currentColor/g,'#000000');
+      const url=URL.createObjectURL(new Blob([txt],{type:'image/svg+xml'}));
+      return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{
+        const cv=document.createElement('canvas');cv.width=wpx;cv.height=hpx;
+        const g=cv.getContext('2d');g.drawImage(im,0,0,wpx,hpx);URL.revokeObjectURL(url);
+        cv.toBlob(b=>{const fr=new FileReader();fr.onload=()=>res({blob:b,dataUrl:fr.result,svg:svgText,wpt,hpt,dpt});fr.readAsDataURL(b);},'image/png');
+      };im.onerror=rej;im.src=url;});
+    });
+  };
+  <\/script>
+  <script src="${MJ}/startup.js"><\/script></head><body><div class="page">
+  <p class="lbl">Abgesetzte Gleichung</p>
+  <div class="eq"><div class="f" id="f"><span class="wait">Schrift wird geladen …</span></div><div class="no">(1)</div></div>
+  <p class="lbl">Im Fließtext</p>
+  <p class="txt">According to the presented theory the relation <span id="i"></span> holds for both charged elementary particles, so it can be used in the following chapters without further explanation.</p>
+  </div></body></html>`;
+}
+const frame = document.getElementById('out');
+let frameFont = null, frameReady = false;
+window.addEventListener('message', e => { if (e.data && e.data.fe === 'h') frame.style.height = Math.max(200, e.data.h + 8) + 'px'; });
+// Rohtext-Modus (nach Tippen von \\) verlassen und versehentlich als Text gelandete Befehle reparieren
+function leaveLatex() {
+  if (!mf) return;
+  if (mf.mode === 'latex') { try { mf.executeCommand('complete'); } catch (e) {} if (mf.mode === 'latex') mf.mode = 'math'; }
+  const v = mf.getValue('latex');
+  if (v.includes('\\textbackslash')) {
+    const fixed = v.replace(/\\text\{((?:[^{}]|\{[^{}]*\})*)\}/g, (m, t) => t.includes('\\textbackslash') ? t.replace(/\\textbackslash(\{\})?\s?/g, '\\').replace(/\\([{}])/g, '$1') : m);
+    mf.setValue(fixed, {silenceNotifications: true});
+  }
+}
+function show() {
+  leaveLatex();
+  const tex = mf ? mf.getValue('latex') : '';
+  const disp = render(tex || '\\square', mode, true);
+  const inl = render(tex || '\\square', 'lin', false) ;
+  const inlSci = render(tex || '\\square', 'sci', false);
+  const inline = mode === 'lin' ? inl : inlSci;
+  document.getElementById('src').textContent = disp;
+  if (frameFont !== font) {
+    frameFont = font;
+    frame.srcdoc = frameDoc(font);
+    frame.onload = () => { try { frame.contentWindow.__zoom(zoom / 100); frame.contentWindow.__show(disp, inline); } catch (e) {} };
+  } else {
+    try { frame.contentWindow.__show(disp, inline); } catch (e) {}
+  }
+}
+
+/* ---------- Copy to Word ---------- */
+const CRC = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xffffffff; for (const b of u8) c = CRC[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+async function withDpi(blob, dpi) {
+  const src = new Uint8Array(await blob.arrayBuffer());
+  const ppm = Math.round(dpi / 0.0254);
+  const chunk = new Uint8Array(21); const dv = new DataView(chunk.buffer);
+  dv.setUint32(0, 9); chunk.set([112, 72, 89, 115], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); chunk[16] = 1;
+  dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const at = 8 + 25; // after signature + IHDR
+  const out = new Uint8Array(src.length + 21);
+  out.set(src.subarray(0, at)); out.set(chunk, at); out.set(src.subarray(at), at + 21);
+  return new Blob([out], {type: 'image/png'});
+}
+const esc = v => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+function copyFormula(pngOnly) {
+  const msg = document.getElementById('copymsg');
+  const fb = document.getElementById('fallback');
+  const src = mf ? mf.getValue('latex') : '';
+  if (!src.trim()) { msg.textContent = 'Erst eine Formel eingeben, dann kopieren.'; return; }
+  const meta = 'FORMEL:' + JSON.stringify({tex: src, mode, font, pt: sizePt});
+  let job;
+  try { job = frame.contentWindow.__png(sizePt); } catch (e) { job = Promise.reject(e); }
+  const htmlP = job.then(r => new Blob([
+    '<html><body><img src="' + r.dataUrl + '" width="' + Math.round(r.wpt * 96 / 72) + '" height="' + Math.round(r.hpt * 96 / 72) +
+    '" style="width:' + r.wpt.toFixed(2) + 'pt;height:' + r.hpt.toFixed(2) + 'pt;vertical-align:-' + r.dpt.toFixed(2) + 'pt" alt="' + esc(meta) + '"></body></html>'
+  ], {type: 'text/html'}));
+  const pngP = job.then(r => withDpi(r.blob, 600));
+  const showFallback = () => job.then(r => {
+    const im = document.getElementById('fbimg');
+    im.src = r.dataUrl; im.style.width = (r.wpt * 96 / 72) + 'px'; im.alt = meta;
+    fb.hidden = false; msg.classList.remove('ok');
+    msg.textContent = 'Direktes Kopieren ging nicht, siehe unten.';
+  }).catch(() => { msg.textContent = 'Die Formel konnte nicht gesetzt werden. Bitte prüfen, ob alle Felder ausgefüllt sind.'; });
+  try {
+    navigator.clipboard.write([new ClipboardItem(pngOnly ? {'image/png': pngP} : {'text/html': htmlP, 'image/png': pngP})]).then(() => {
+      fb.hidden = true; msg.classList.add('ok');
+      msg.textContent = 'Kopiert. Jetzt in Word an die gewünschte Stelle klicken und ⌘V drücken.';
+    }, showFallback);
+  } catch (e) { showFallback(); }
+}
+document.getElementById('copy').addEventListener('click', () => copyFormula(false));
+document.getElementById('copypng').addEventListener('click', () => copyFormula(true));
+const sizeBox = document.getElementById('sizes');
+[10, 11, 12, 14, 16, 20, 24].forEach(p => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.id = 'size-' + p; b.dataset.pt = p; b.textContent = p + ' pt';
+  b.addEventListener('click', () => { sizePt = p; try { localStorage.setItem('fe-size', p); } catch (e) {} syncSeg(); });
+  sizeBox.appendChild(b);
+});
+try { sizePt = +(localStorage.getItem('fe-size') || 12); zoom = +(localStorage.getItem('fe-zoom') || zoom); } catch (e) {}
+if (!FONTS.some(f => f.id === font)) font = 'stix2';
+const zoomEl = document.getElementById('zoom'), zoomVal = document.getElementById('zoomval');
+zoomEl.value = zoom; zoomVal.textContent = zoom + ' %';
+zoomEl.addEventListener('input', () => {
+  zoom = +zoomEl.value; zoomVal.textContent = zoom + ' %';
+  try { localStorage.setItem('fe-zoom', zoom); } catch (e) {}
+  try { frame.contentWindow.__zoom(zoom / 100); } catch (e) {}
+});
+
+/* ---------- Formel aus Word zurückholen ---------- */
+// Beim Kopieren steckt die Formel als „FORMEL:{…}“ im Alternativtext des Bildes; Word behält ihn.
+function findMeta(html, text) {
+  const cands = [];
+  if (html) {
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      doc.querySelectorAll('[alt],[title],[descr],[o\\:title]').forEach(el => {
+        for (const a of el.attributes) if (a.value.includes('FORMEL:')) cands.push(a.value);
+      });
+      cands.push(doc.documentElement.textContent || '');
+    } catch (e) {}
+    cands.push(html.replace(/&quot;/g, '"').replace(/&#34;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+  }
+  if (text) cands.push(text);
+  for (const c of cands) {
+    const i = c.indexOf('FORMEL:{');
+    if (i < 0) continue;
+    // passende schließende Klammer suchen (JSON, Strings beachten)
+    let depth = 0, inStr = false, j = i + 7;
+    for (; j < c.length; j++) {
+      const ch = c[j];
+      if (inStr) { if (ch === '\\') j++; else if (ch === '"') inStr = false; continue; }
+      if (ch === '"') inStr = true; else if (ch === '{') depth++; else if (ch === '}' && --depth === 0) break;
+    }
+    try { const m = JSON.parse(c.slice(i + 7, j + 1)); if (m && typeof m.tex === 'string') return m; } catch (e) {}
+  }
+  return null;
+}
+function loadMeta(m) {
+  const msg = document.getElementById('pastemsg');
+  if (m.mode === 'sci' || m.mode === 'lin') { mode = m.mode; try { localStorage.setItem('fe-mode', mode); } catch (e) {} }
+  if (FONTS.some(f => f.id === m.font)) { font = m.font; try { localStorage.setItem('fe-font', font); } catch (e) {} }
+  if (m.pt) sizePt = +m.pt;
+  syncSeg();
+  mf.setValue(m.tex, {silenceNotifications: true});
+  show(); mf.focus();
+  msg.classList.add('ok');
+  msg.textContent = 'Formel aus Word übernommen. Nach dem Ändern „Formel kopieren“ drücken und in Word über die alte Formel einfügen (sie ist dort noch markiert, wenn man nichts anderes anklickt).';
+}
+function noMeta() {
+  const msg = document.getElementById('pastemsg');
+  msg.classList.remove('ok');
+  msg.textContent = 'In der Zwischenablage ist keine Formel aus diesem Editor. Bitte in Word genau die Formel anklicken und ⌘C drücken.';
+}
+// ⌘V irgendwo auf der Seite (auch im Eingabefeld): Formel aus Word erkennen, sonst normal einfügen
+window.addEventListener('paste', e => {
+  const dt = e.clipboardData; if (!dt) return;
+  const m = findMeta(dt.getData('text/html'), dt.getData('text/plain'));
+  if (m) { e.preventDefault(); e.stopPropagation(); loadMeta(m); }
+}, {capture: true});
+document.getElementById('fromword').addEventListener('click', async () => {
+  const msg = document.getElementById('pastemsg');
+  try {
+    const items = await navigator.clipboard.read();
+    let html = '', text = '';
+    for (const it of items) {
+      if (it.types.includes('text/html')) html += await (await it.getType('text/html')).text();
+      if (it.types.includes('text/plain')) text += await (await it.getType('text/plain')).text();
+    }
+    const m = findMeta(html, text);
+    if (m) loadMeta(m); else noMeta();
+  } catch (e) {
+    msg.classList.remove('ok');
+    msg.textContent = 'Der Browser erlaubt das Auslesen hier nicht direkt. Dann bitte ins Eingabefeld klicken und ⌘V drücken.';
+    mf.focus();
+  }
+});
+
+/* ---------- UI ---------- */
+function buildTools(tab) {
+  const box = document.getElementById('tools');
+  box.className = 'tools' + (tab === 'aufbau' ? '' : ' sym');
+  box.innerHTML = '';
+  TOOLS[tab].forEach(t => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tool';
+    b.innerHTML = '<span class="g"><span class="w">' + t.g + '</span></span>' + (t.n ? '<span class="n">' + t.n + '</span>' : '');
+    if (!t.n) b.setAttribute('aria-label', t.g);
+    b.addEventListener('click', () => { leaveLatex(); mf.executeCommand(['insert', t.ins, {selectionMode: 'placeholder', format: 'latex'}]); mf.focus(); });
+    box.appendChild(b);
+  });
+}
+document.querySelectorAll('.tab').forEach(tb => tb.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === tb));
+  buildTools(tb.dataset.tab);
+}));
+const fontBox = document.getElementById('fonts');
+FONTS.forEach(f => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.id = 'font-' + f.id; b.dataset.font = f.id;
+  b.innerHTML = f.name + '<small>' + f.note + '</small>';
+  b.addEventListener('click', () => { font = f.id; try { localStorage.setItem('fe-font', font); } catch (e) {} syncSeg(); show(); });
+  fontBox.appendChild(b);
+});
+document.querySelectorAll('#mode button').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.mode; try { localStorage.setItem('fe-mode', mode); } catch (e) {} syncSeg(); show();
+}));
+function syncSeg() {
+  document.querySelectorAll('#mode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+  document.querySelectorAll('#fonts button').forEach(b => b.setAttribute('aria-pressed', b.dataset.font === font));
+  document.querySelectorAll('#sizes button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.pt === sizePt));
+}
+const sBox = document.getElementById('samples');
+if (!SAMPLES.length) sBox.closest('section').hidden = true;
+SAMPLES.forEach(s => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'sample';
+  b.innerHTML = '<b>' + (s.num || 'ohne Nummer') + '</b><span>' + s.title + '</span>';
+  b.addEventListener('click', () => { mf.setValue(s.tex, {silenceNotifications: true}); show(); mf.focus(); window.scrollTo({top: 0, behavior: 'smooth'}); });
+  sBox.appendChild(b);
+});
+
+function init() {
+  const ML = window.MathLive;
+  ML.MathfieldElement.fontsDirectory = null;
+  ML.MathfieldElement.soundsDirectory = null;
+  mf = new ML.MathfieldElement();
+  mf.id = 'mf';
+  mf.mathVirtualKeyboardPolicy = 'manual';
+  mf.smartFence = true;
+  document.getElementById('mfwrap').appendChild(mf);
+  mf.setAttribute('aria-label', 'Formel eingeben');
+  const setup = () => {
+    mf.macros = Object.assign({}, mf.macros, {
+      lambdaslash: {def: 'ƛ', captureSelection: true, expand: false},
+      lambdabar: {def: '\\mathrlap{\\mkern4mu\\raisebox{0.52em}{\\rule{0.3em}{0.05em}}}\\lambda', captureSelection: true, expand: false},
+      uppi: {def: '\\pi', captureSelection: true, expand: false}
+    });
+    mf.setValue(SAMPLES.length > 1 ? SAMPLES[1].tex : 'E=mc^2', {silenceNotifications: true});
+    show();
+  };
+  if (mf.isConnected && mf.getValue) { try { setup(); } catch (e) { mf.addEventListener('mount', setup, {once: true}); } }
+  else mf.addEventListener('mount', setup, {once: true});
+  // Backslash öffnet in MathLive einen Rohtext-Modus, den Papa nicht braucht
+  mf.addEventListener('keydown', e => { if (e.key === '\\') { e.preventDefault(); e.stopPropagation(); } }, {capture: true});
+  mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); });
+  mf.addEventListener('input', () => { clearTimeout(window.__t); window.__t = setTimeout(show, 250); });
+  document.getElementById('undo').onclick = () => { mf.executeCommand('undo'); show(); };
+  document.getElementById('redo').onclick = () => { mf.executeCommand('redo'); show(); };
+  document.getElementById('clear').onclick = () => { mf.setValue(''); show(); mf.focus(); };
+  syncSeg(); buildTools('aufbau');
+}
+if (window.MathLive) init(); else window.addEventListener('load', init);
+</script>
