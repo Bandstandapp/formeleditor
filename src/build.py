@@ -39,14 +39,18 @@ body.addin .settings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>'''
+    ver = json.load(open('version.json'))
+    v = ver['version']
     page = ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
             '<title>Formeleditor</title>\n'
             '<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>\n'
             '</head>\n<body class="addin">\n' + body + css +
-            '\n<script src="eqn3.js"></script>\n<script src="addin.js"></script>\n</body>\n</html>\n')
+            '\n<script>window.FE_VERSION = ' + json.dumps(ver, ensure_ascii=False) + ';</script>'
+            '\n<script src="eqn3.js?v=' + v + '"></script>\n<script src="addin.js?v=' + v + '"></script>'
+            '\n<script src="setup.js?v=' + v + '"></script>\n</body>\n</html>\n')
     open(os.path.join(REPO, 'taskpane.html'), 'w').write(page)
-    for f in ('addin.js', 'eqn3.js'):
+    for f in ('addin.js', 'eqn3.js', 'setup.js', 'version.json'):
         open(os.path.join(REPO, f), 'w').write(open(f).read())
     print('taskpane', len(page))
     open(os.path.join(REPO, 'editor.html'), 'w').write('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n</head>\n<body>\n' + web + '\n</body>\n</html>\n')

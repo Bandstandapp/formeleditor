@@ -50,6 +50,22 @@ Die Formel steckt unsichtbar im Alternativtext des Bildes. Deshalb lässt sie si
 - Für das Einfügen braucht der Editor Internet, weil er die Schriften für den Formelsatz aus dem Netz lädt. Bereits eingefügte Formeln funktionieren im Dokument auch ohne Internet.
 - Alte Formeln aus dem Formel-Editor 3.0 (in Dokumenten, die von .doc nach .docx umgewandelt wurden) lassen sich genauso anklicken. Der Editor übernimmt sie, und „Formel in Word ersetzen“ speichert sie im neuen Format.
 
+## Version und Aktualisierung
+
+Oben im Editor steht die laufende Version, zum Beispiel „Formeleditor, Version 1.1.0“. Daneben öffnet der Knopf **Einrichtung** ein Fenster, das diese Version mit der aktuellen Version auf GitHub vergleicht.
+
+- Gibt es eine neuere Version, erscheint beim Start oben ein blauer Hinweis. In der Einrichtung fragt der Editor dann „Jetzt aktualisieren?“. Mit **Ja, jetzt aktualisieren** lädt er sich neu und holt dabei die neuen Dateien von GitHub. Eine gerade eingegebene, noch nicht eingefügte Formel geht dabei verloren.
+- **Editor neu laden** lädt den Editor auch ohne neue Version frisch von GitHub.
+- Die Einrichtungsdatei aus Schritt 1 muss für ein Update nicht neu geladen werden.
+
+Zeigt der Editor gar keine Versionsnummer an, läuft noch eine ältere Fassung aus dem Zwischenspeicher von Word. Dann Word mit ⌘Q beenden und neu starten. Hilft das nicht, bei beendetem Word diese Zeile im Terminal ausführen und Word wieder starten:
+
+```
+rm -rf ~/Library/Containers/com.microsoft.Word/Data/Library/Caches/* ~/Library/Containers/com.microsoft.Word/Data/Library/Application\ Support/Microsoft/Office/16.0/Wef/*
+```
+
+Sie löscht nur den Zwischenspeicher der Word-Add-ins, nicht die Einrichtungsdatei und keine Dokumente.
+
 ## Wieder entfernen
 
 Die Datei `formeleditor.xml` aus dem Ordner `~/Library/Containers/com.microsoft.Word/Data/Documents/wef` löschen und Word neu starten.
