@@ -13,6 +13,16 @@
   const insertBtn = oldCopy.cloneNode(true);   // Klon ohne den Kopieren-Handler
   oldCopy.replaceWith(insertBtn);
   insertBtn.textContent = 'In Word einfügen';
+  // Derselbe Knopf noch einmal direkt unter der Eingabe, mit eigener Rückmeldung
+  const insertBtn2 = insertBtn.cloneNode(true);
+  insertBtn2.id = 'copy2';
+  const status2 = document.createElement('p');
+  status2.className = 'hint'; status2.setAttribute('role', 'status');
+  const eingabeRow = document.querySelector('section[aria-label="Eingabe"] .row');
+  const row2 = document.createElement('div');
+  row2.className = 'row';
+  row2.appendChild(insertBtn2);
+  eingabeRow.after(row2, status2);
   const oldLoad = $('fromword');
   const loadBtn = oldLoad.cloneNode(true);
   oldLoad.replaceWith(loadBtn);
@@ -26,7 +36,7 @@
 
   function setEditing(meta) {
     current = meta;
-    insertBtn.textContent = meta ? 'Formel in Word ersetzen' : 'In Word einfügen';
+    insertBtn.textContent = insertBtn2.textContent = meta ? 'Formel in Word ersetzen' : 'In Word einfügen';
   }
 
   // Ein Absatz mit einem einzigen Bild; Word übernimmt es beim Einfügen in die laufende Zeile.
@@ -151,15 +161,18 @@
   let selTimer;
   function onSelectionChanged() { clearTimeout(selTimer); selTimer = setTimeout(() => checkSelection(false), 150); }
 
+  const sayStatus = (text, ok) => { say(status, text, ok); say(status2, text, ok); };
+
   async function insertIntoWord() {
     const src = mf ? mf.getValue('latex') : '';
-    if (!src.trim()) { say(status, 'Erst eine Formel eingeben.'); return; }
-    if (!wordReady) { say(status, 'Das geht nur, wenn der Editor in Word geöffnet ist.'); return; }
-    insertBtn.disabled = true;
-    say(status, 'Formel wird eingefügt …');
+    if (!src.trim()) { sayStatus('Erst eine Formel eingeben.'); return; }
+    if (!wordReady) { sayStatus('Das geht nur, wenn der Editor in Word geöffnet ist.'); return; }
+    insertBtn.disabled = insertBtn2.disabled = true;
+    sayStatus('Formel wird eingefügt …');
     try {
-      const meta = 'FORMEL:' + JSON.stringify({tex: src, mode, font, pt: sizePt});
-      const r = await frame.contentWindow.__png(sizePt);
+      const pad = current && current.pad ? current.pad : 0;   // Luft um umgewandelte Formeln im Fließtext beibehalten
+      const meta = 'FORMEL:' + JSON.stringify(pad ? {tex: src, mode, font, pt: sizePt, pad} : {tex: src, mode, font, pt: sizePt});
+      const r = await frame.contentWindow.__png(sizePt, 0, pad);
       const xml = ooxml(r, meta);
       let replaced = false;
       await Word.run(async ctx => {
@@ -170,15 +183,16 @@
         await ctx.sync();
       });
       setEditing(null);
-      say(status, replaced ? 'Formel im Dokument ersetzt.' : 'Formel eingefügt.', true);
+      sayStatus(replaced ? 'Formel im Dokument ersetzt.' : 'Formel eingefügt.', true);
     } catch (e) {
-      say(status, 'Einfügen hat nicht geklappt: ' + (e && e.message ? e.message : e));
+      sayStatus('Einfügen hat nicht geklappt: ' + (e && e.message ? e.message : e));
     } finally {
-      insertBtn.disabled = false;
+      insertBtn.disabled = insertBtn2.disabled = false;
     }
   }
 
   insertBtn.addEventListener('click', insertIntoWord);
+  insertBtn2.addEventListener('click', insertIntoWord);
   loadBtn.addEventListener('click', () => checkSelection(true));
   // „Neue Formel“ trennt den Editor von der zuletzt angeklickten Formel
   $('clear').addEventListener('click', () => setEditing(null));

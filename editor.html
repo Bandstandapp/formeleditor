@@ -387,18 +387,19 @@ function frameDoc(fontId) {
       return MathJax.tex2svgPromise(inl,{display:false});}).then(n=>{d.getElementById('i').appendChild(n);
       parent.postMessage({fe:'h',h:d.body.scrollHeight},'*');}).catch(e=>{d.getElementById('f').textContent='Diese Formel lässt sich noch nicht setzen.';});
   };
-  window.__png=function(pt){
+  window.__png=function(pt,dpiOpt,padEm){
     return Promise.resolve(window.__done).then(()=>{
       const svg=document.querySelector('#f svg');
       if(!svg) throw new Error('keine Formel');
       const vb=svg.getAttribute('viewBox').trim().split(' ').map(Number);
+      const pad=(padEm||0)*1000; vb[0]-=pad; vb[2]+=2*pad;
       const wpt=vb[2]/1000*pt, hpt=vb[3]/1000*pt, dpt=(vb[1]+vb[3])/1000*pt;
-      const dpi=600, wpx=Math.ceil(wpt/72*dpi), hpx=Math.ceil(hpt/72*dpi);
-      const c=svg.cloneNode(true);
+      const dpi=dpiOpt||600, wpx=Math.ceil(wpt/72*dpi), hpx=Math.ceil(hpt/72*dpi);
+      const c=svg.cloneNode(true); c.setAttribute('viewBox',vb.join(' '));
       c.removeAttribute('style'); c.setAttribute('width',wpx); c.setAttribute('height',hpx);
       c.setAttribute('xmlns','http://www.w3.org/2000/svg');
       const txt=new XMLSerializer().serializeToString(c).replace(/currentColor/g,'#000000');
-      const v=svg.cloneNode(true); v.removeAttribute('style'); v.setAttribute('width',wpt.toFixed(3)+'pt'); v.setAttribute('height',hpt.toFixed(3)+'pt');
+      const v=svg.cloneNode(true); v.setAttribute('viewBox',vb.join(' ')); v.removeAttribute('style'); v.setAttribute('width',wpt.toFixed(3)+'pt'); v.setAttribute('height',hpt.toFixed(3)+'pt');
       v.setAttribute('xmlns','http://www.w3.org/2000/svg');
       const svgText=new XMLSerializer().serializeToString(v).replace(/currentColor/g,'#000000');
       const url=URL.createObjectURL(new Blob([txt],{type:'image/svg+xml'}));
