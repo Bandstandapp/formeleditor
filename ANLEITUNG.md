@@ -48,7 +48,7 @@ Die Formel steckt unsichtbar im Alternativtext des Bildes. Deshalb lässt sie si
 
 - Die Formeln sind Vektorgrafiken. Sie bleiben beim Vergrößern und im Druck scharf.
 - Für das Einfügen braucht der Editor Internet, weil er die Schriften für den Formelsatz aus dem Netz lädt. Bereits eingefügte Formeln funktionieren im Dokument auch ohne Internet.
-- Die alten Formeln aus dem Formel-Editor 3.0 werden noch nicht direkt übernommen. Dafür kommt ein eigener Schritt.
+- Alte Formeln aus dem Formel-Editor 3.0 (in Dokumenten, die von .doc nach .docx umgewandelt wurden) lassen sich genauso anklicken. Der Editor übernimmt sie, und „Formel in Word ersetzen“ speichert sie im neuen Format.
 
 ## Wieder entfernen
 

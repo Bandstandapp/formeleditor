@@ -1,12 +1,14 @@
 import json, os, sys
 # Aufruf: python3 build.py [ZIELORDNER] [--samples samples.json]
 HERE = os.path.dirname(os.path.abspath(__file__))
-os.chdir(HERE)
 args = [a for a in sys.argv[1:]]
 SAMPLES = 'samples.json'
 if '--samples' in args:
-    i = args.index('--samples'); SAMPLES = args[i + 1]; del args[i:i + 2]
+    i = args.index('--samples'); SAMPLES = os.path.abspath(args[i + 1]); del args[i:i + 2]
 REPO = os.path.abspath(args[0]) if args else None
+os.chdir(HERE)
+if REPO and os.path.abspath(REPO) == HERE:
+    sys.exit('Zielordner darf nicht src/ sein')
 s = open('index.src.html').read()
 s = s.replace('/*@@MLFONTS@@*/', open('mlfonts.css').read())
 s = s.replace('/*@@SAMPLES@@*/', json.dumps((json.load(open(SAMPLES)) if os.path.exists(SAMPLES) else []), ensure_ascii=False))
@@ -42,8 +44,9 @@ body.addin #fonts small { display: none; }
             '<title>Formeleditor</title>\n'
             '<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>\n'
             '</head>\n<body class="addin">\n' + body + css +
-            '\n<script src="addin.js"></script>\n</body>\n</html>\n')
+            '\n<script src="eqn3.js"></script>\n<script src="addin.js"></script>\n</body>\n</html>\n')
     open(os.path.join(REPO, 'taskpane.html'), 'w').write(page)
-    open(os.path.join(REPO, 'addin.js'), 'w').write(open('addin.js').read())
+    for f in ('addin.js', 'eqn3.js'):
+        open(os.path.join(REPO, f), 'w').write(open(f).read())
     print('taskpane', len(page))
     open(os.path.join(REPO, 'editor.html'), 'w').write('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n</head>\n<body>\n' + web + '\n</body>\n</html>\n')

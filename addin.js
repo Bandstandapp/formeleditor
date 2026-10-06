@@ -65,16 +65,64 @@
       '</pkg:package>';
   }
 
-  // Erste Formel-Grafik in der aktuellen Markierung (oder null)
+  // Die Binärdatei der alten Formel aus dem OOXML der Markierung holen
+  function oleBytes(flat) {
+    const doc = new DOMParser().parseFromString(flat, 'application/xml');
+    const PKG = 'http://schemas.microsoft.com/office/2006/xmlPackage';
+    const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const parts = Array.from(doc.getElementsByTagNameNS(PKG, 'part'));
+    const partData = name => {
+      const p = parts.find(x => x.getAttributeNS(PKG, 'name') === name);
+      const d = p && p.getElementsByTagNameNS(PKG, 'binaryData')[0];
+      return d ? d.textContent.replace(/\s+/g, '') : null;
+    };
+    let b64 = null;
+    const ole = Array.from(doc.getElementsByTagNameNS('urn:schemas-microsoft-com:office:office', 'OLEObject'))
+      .find(o => /^Equation\.3/.test(o.getAttribute('ProgID') || ''));
+    if (ole) {
+      const rid = ole.getAttributeNS(R, 'id');
+      const rels = parts.find(x => /\/word\/_rels\/document\.xml\.rels$/.test(x.getAttributeNS(PKG, 'name')));
+      const rel = rels && Array.from(rels.getElementsByTagName('Relationship')).find(r => r.getAttribute('Id') === rid);
+      if (rel) b64 = partData('/word/' + rel.getAttribute('Target').replace(/^\/?(word\/)?/, ''));
+    }
+    if (!b64) {
+      const p = parts.find(x => /\.bin$/.test(x.getAttributeNS(PKG, 'name')));
+      if (p) b64 = partData(p.getAttributeNS(PKG, 'name'));
+    }
+    if (!b64) throw new Error('Formeldaten fehlen');
+    const bin = atob(b64), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u;
+  }
+
+  // Steht die Formel allein im Absatz (höchstens mit Gleichungsnummer), war sie abgesetzt
+  const standsAlone = text => text.replace(/\(\s*[0-9][0-9.,a-z]*\s*\)/gi, '').replace(/[\s\u0000-\u001f ￼]/g, '').length <= 1;
+
+  // Formel in der aktuellen Markierung: neue (Bild mit FORMEL-Text) oder alte (Formel-Editor 3.0)
   async function selectedFormula(ctx) {
-    const pics = ctx.document.getSelection().inlinePictures;
+    const sel = ctx.document.getSelection();
+    const pics = sel.inlinePictures;
     pics.load('items/altTextDescription,items/altTextTitle');
+    sel.load('text');
     await ctx.sync();
     for (const p of pics.items) {
       const m = findMeta(null, (p.altTextDescription || '') + ' ' + (p.altTextTitle || ''));
-      if (m) return {pic: p, meta: m};
+      if (m) return {kind: 'new', pic: p, meta: m};
     }
-    return null;
+    // Nur kurze Markierungen prüfen: ein angeklicktes Formelobjekt hat (fast) keinen Text
+    if (sel.text.replace(/\s/g, '').length > 2) return null;
+    const ox = sel.getOoxml();
+    await ctx.sync();
+    if (!/Equation\.3/.test(ox.value)) return null;
+    let tex;
+    try { tex = Eqn3.oleToLatex(oleBytes(ox.value)); }
+    catch (e) { const err = new Error(e.message); err.oldFormula = true; throw err; }
+    const para = sel.paragraphs.getFirst();
+    para.load('text');
+    sel.font.load('size');
+    await ctx.sync();
+    const pt = Math.round(sel.font.size || sizePt);
+    return {kind: 'old', range: sel, meta: {tex, mode: standsAlone(para.text) ? 'sci' : 'lin', font, pt: pt > 5 && pt < 40 ? pt : sizePt}};
   }
 
   async function checkSelection(manual) {
@@ -85,14 +133,18 @@
         if (f) {
           loadMeta(f.meta);
           setEditing(f.meta);
-          say(pasteMsg, 'Formel aus dem Dokument geladen. Ändern und dann „Formel in Word ersetzen“ drücken.', true);
+          say(pasteMsg, f.kind === 'old'
+            ? 'Alte Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann „Formel in Word ersetzen“ drücken. Danach ist sie im neuen Format.'
+            : 'Formel aus dem Dokument geladen. Ändern und dann „Formel in Word ersetzen“ drücken.', true);
         } else {
           setEditing(null);
           if (manual) say(pasteMsg, 'Im Dokument ist keine Formel aus diesem Editor markiert. Bitte die Formel einmal anklicken.');
         }
       });
     } catch (e) {
-      if (manual) say(pasteMsg, 'Word hat die Markierung nicht herausgegeben: ' + e.message);
+      setEditing(null);
+      if (e.oldFormula) say(pasteMsg, 'Diese alte Formel ließ sich nicht lesen (' + e.message + '). Sie muss neu eingegeben werden.');
+      else if (manual) say(pasteMsg, 'Word hat die Markierung nicht herausgegeben: ' + e.message);
     }
   }
 
@@ -112,7 +164,8 @@
       let replaced = false;
       await Word.run(async ctx => {
         const f = current ? await selectedFormula(ctx) : null;
-        if (f) { f.pic.getRange('Whole').insertOoxml(xml, 'Replace'); replaced = true; }
+        if (f && f.kind === 'new') { f.pic.getRange('Whole').insertOoxml(xml, 'Replace'); replaced = true; }
+        else if (f) { f.range.insertOoxml(xml, 'Replace'); replaced = true; }
         else ctx.document.getSelection().insertOoxml(xml, 'Replace');
         await ctx.sync();
       });
