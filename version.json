@@ -1,1 +1,1 @@
-{"version": "1.6.0", "datum": "2026-10-11", "neu": "Integrale und mehrzeilige Formeln aus dem alten Formel-Editor werden richtig umgewandelt, Formeln im Fließtext bleiben wissenschaftlich, Farbe für Zeichen, Leertaste in Zahlen, fette griechische Buchstaben, Knopf „Ohne Änderung übernehmen“."}
+{"version": "1.6.1", "datum": "2026-10-11", "neu": "Knopf „Abbrechen“ verwirft Änderungen, kein Abstand mehr nach dem Komma, etwas größerer Abstand mit der Leertaste, wissenschaftliche Vorschau beginnt am linken Rand."}

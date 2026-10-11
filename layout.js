@@ -55,6 +55,9 @@ body.addin .editrow { display: grid; grid-template-columns: repeat(3, minmax(0, 
 body.addin .editrow .btn { padding: 6px 2px; font-size: .85rem; white-space: nowrap; }
 body.addin button.btn.primary { width: 100%; font-size: 1.15rem; padding: 12px 14px; }
 body.addin .copyrow { display: block; }
+body.addin .fe-insrow { display: flex; flex-direction: column-reverse; gap: 6px; }
+body.addin .fe-insrow .fe-cancel { width: 100%; padding: 7px 10px; font-size: .95rem; }
+body.addin .fe-insrow .fe-cancel:disabled { opacity: .45; cursor: default; }
 body.addin .hint:empty { display: none; }
 body.addin #mode { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 body.addin #mode button { text-align: center; padding: 8px 4px; }
@@ -104,7 +107,7 @@ body.addin .paper iframe { min-height: 0; }`;
   heading(eingabe, 'Eingabe',
     'Hier entsteht die Formel. Zum Ändern einer Formel sie im Dokument anklicken, dann erscheint sie hier.\n\n' +
     'Tippen: / macht einen Bruch, ^ eine Hochzahl, _ einen Index. Die Pfeiltasten wechseln zwischen den Feldern.\n\n' +
-    'F macht markierte Zeichen fett, K schaltet zwischen kursiv und aufrecht um, A färbt sie. Ohne Markierung gilt das für die nächsten Zeichen. Die Leertaste setzt einen schmalen Abstand, etwa in 1.159 652 180 46.');
+    'F macht markierte Zeichen fett, K schaltet zwischen kursiv und aufrecht um, A färbt sie. Ohne Markierung gilt das für die nächsten Zeichen. Die Leertaste setzt einen kleinen Abstand, etwa in 1.159 652 180 46.');
   heading(vorschau, 'Vorschau', 'So erscheint die Formel in Word. Der Zoom vergrößert nur diese Ansicht, nicht die Formel im Dokument. Schrift und Schriftgröße gelten für die Formel in der Eingabe.');
 
   // Erklärtexte entfernen; Rückmeldungen (pastemsg, copymsg, Status) bleiben, starten aber leer
