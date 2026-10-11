@@ -82,8 +82,6 @@
 .fe-num input[type=text] { font: inherit; font-size: 1rem; width: 6.5em; padding: 5px 8px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); }
 .fe-num input[type=text]:focus-visible { outline: 3px solid var(--focus); }
 .fe-num .fe-check { font-size: .95rem; }
-.fe-num input.fe-mm { width: 4.2em; text-align: right; }
-.fe-num .fe-rand { font-size: .95rem; }
 .fe-num #fe-num-align { justify-self: start; text-align: left; font-size: .95rem; }`;
   document.head.appendChild(css);
   const box = document.createElement('div');
@@ -92,27 +90,21 @@
     '<div class="fe-num-more" hidden><div class="fe-num-row">(<input type="text" id="fe-num" inputmode="decimal" autocomplete="off" aria-label="Gleichungsnummer">)' +
     '<button type="button" class="linkbtn" id="fe-num-sug">Vorschlag</button></div>' +
     '<label class="fe-check"><input type="checkbox" id="fe-num-shift" checked> Folgende Nummern weiterzählen, auch in Verweisen</label>' +
-    '<div class="fe-num-row fe-rand"><label for="fe-num-rand">Abstand zum rechten Rand</label>' +
-    '<input type="text" class="fe-mm" id="fe-num-rand" inputmode="decimal" autocomplete="off"> mm</div>' +
-    '<button type="button" class="linkbtn" id="fe-num-align">Alle Nummern im Dokument so ausrichten</button></div>' +
+    '<button type="button" class="linkbtn" id="fe-num-align">Alle Formeln und Nummern im Dokument wie im Lineal ausrichten</button></div>' +
     '<p class="hint" id="fe-num-msg" role="status"></p>';
   const modeBox = q('#mode');
   (modeBox && modeBox.parentElement === vorschau ? modeBox : vorschau.querySelector('.paper')).after(box);
   const on = box.querySelector('#fe-num-on'), field = box.querySelector('#fe-num'), shiftBox = box.querySelector('#fe-num-shift');
   const more = box.querySelector('.fe-num-more'), msg = box.querySelector('#fe-num-msg');
-  const randField = box.querySelector('#fe-num-rand');
   try { on.checked = localStorage.getItem('fe-num-on') === '1'; shiftBox.checked = localStorage.getItem('fe-num-shift') !== '0'; } catch (e) {}
-  try { randField.value = (localStorage.getItem('fe-num-rand') || '0').replace('.', ','); } catch (e) { randField.value = '0'; }
-  // Abstand der Nummer vom rechten Rand in mm (Standard für alle Nummern), als Einzug in Punkt
-  function randMm() {
-    const v = parseFloat(String(randField.value).replace(',', '.'));
-    return isFinite(v) && v > 0 ? Math.min(v, 100) : 0;
+  // Einzüge aus dem Lineal (lineal.js); ohne Lineal am Rand
+  const L = () => window.FeLineal || {leftPt: () => 0, rightPt: () => 0, text: () => ''};
+  function indent(para) {
+    para.leftIndent = L().leftPt();
+    para.firstLineIndent = 0;
+    para.rightIndent = L().rightPt();
+    para.alignment = 'Left';
   }
-  const randPt = () => Math.round(randMm() * 72 / 25.4 * 10) / 10;
-  randField.addEventListener('change', () => {
-    randField.value = String(randMm()).replace('.', ',');
-    try { localStorage.setItem('fe-num-rand', String(randMm())); } catch (e) {}
-  });
   const inWord = () => typeof Word !== 'undefined' && typeof Office !== 'undefined' && Office.context && Office.context.document;
 
   // Nummer in der Vorschau anzeigen
@@ -233,9 +225,17 @@
     const note = pendingNote; pendingNote = '';
     return note;
   }
-  // Nach dem Einfügen: Absatz der Formel bekommt den Einzug rechts, an dem die Nummer endet
-  function afterInsert(range) {
-    range.paragraphs.getFirst().rightIndent = randPt();
+  // Nach dem Einfügen einer abgesetzten Formel: Einzüge wie im Lineal. Mit Nummer hat die Formel ihren
+  // eigenen Absatz; ohne Nummer nur, wenn der Absatz außer der Formel nichts enthält (keine Formel im Fließtext).
+  async function afterInsert(ctx, range, numbered) {
+    if (!window.FeLineal || !FeLineal.visible()) return;
+    const para = range.paragraphs.getFirst();
+    if (!numbered) {
+      para.load('text');
+      await ctx.sync();
+      if (para.text.replace(/[\s\ufffc]/g, '')) return;
+    }
+    indent(para);
   }
   root.FeNummer = {wanted, beforeInsert, afterInsert, done};
 
@@ -248,7 +248,6 @@
     '</pkg:xmlData></pkg:part></pkg:package>';
   const blank = t => /^[\s\u00a0]*$/.test(t || '');
   async function alignAll() {
-    const pt = randPt();
     let done = 0, skipped = [];
     await Word.run(async ctx => {
       const ps = ctx.document.body.paragraphs;
@@ -282,7 +281,14 @@
         }
         if (gap) gap.insertOoxml(PTAB, 'Replace');
         else at.insertOoxml(PTAB, 'Replace');
-        p.rightIndent = pt;
+        // Leerraum vor der ersten Formel entfernen, damit sie beim Einzug aus dem Lineal beginnt
+        if (pics.items.length) {
+          const lead = p.getRange('Start').expandTo(pics.items[0].getRange('Start'));
+          lead.load('text');
+          await ctx.sync();
+          if (lead.text && blank(lead.text)) lead.delete();
+        }
+        indent(p);
         done++;
       }
       await ctx.sync();
@@ -290,12 +296,11 @@
     return {done, skipped};
   }
   box.querySelector('#fe-num-align').addEventListener('click', async () => {
-    randField.dispatchEvent(new Event('change'));
     if (!inWord()) { msg.textContent = 'Das geht nur, wenn der Editor in Word geöffnet ist.'; return; }
     msg.textContent = 'Nummern werden ausgerichtet …';
     try {
       const r = await alignAll();
-      msg.textContent = r.done ? (r.done === 1 ? '1 Nummer' : r.done + ' Nummern') + ' mit ' + String(randMm()).replace('.', ',') + ' mm Abstand zum rechten Rand ausgerichtet.' +
+      msg.textContent = r.done ? (r.done === 1 ? '1 Nummer' : r.done + ' Nummern') + ' ausgerichtet: ' + L().text() + '.' +
         (r.skipped.length ? ' Nicht gefunden: ' + r.skipped.map(x => '(' + x + ')').join(', ') + '.' : '')
         : 'Im Dokument stehen keine Gleichungsnummern am Ende von Formel-Absätzen.';
     } catch (e) { msg.textContent = 'Das Ausrichten hat nicht geklappt: ' + (e && e.message ? e.message : e); }

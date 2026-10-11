@@ -49,7 +49,7 @@ body.addin #fonts small { display: none; }
 </style>'''
     ver = json.load(open('version.json'))
     # Reihenfolge zählt: layout ordnet die Kacheln, die späteren Dateien hängen sich dort ein
-    SCRIPTS = ('addin.js', 'layout.js', 'bausteine.js', 'history.js', 'bulk.js', 'nummern.js', 'setup.js', 'melden.js')
+    SCRIPTS = ('addin.js', 'layout.js', 'bausteine.js', 'history.js', 'bulk.js', 'lineal.js','nummern.js', 'setup.js', 'melden.js')
     v = ver['version']
     page = ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
