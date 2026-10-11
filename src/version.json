@@ -1,1 +1,1 @@
-{"version": "1.4.0", "datum": "2026-10-11", "neu": "Neue Oberfläche mit den Reitern „Formel bearbeiten“ und „Alles bearbeiten“, Fett und Kursiv, Vorschau mit Schrift- und Größenauswahl, Werkzeuge für das ganze Dokument, Dokumentation in der Einrichtung, farbiger Rahmen um die Eingabe (grün: wie im Dokument, orange: geändert)."}
+{"version": "1.5.0", "datum": "2026-10-11", "neu": "Verlauf an „Rückgängig“ und „Wiederholen“: Der kleine Pfeil zeigt die letzten 20 Schritte. Ausgewählte Schritte lassen sich einzeln rückgängig machen oder auf eine andere Formel übertragen."}
