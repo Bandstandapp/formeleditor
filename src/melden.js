@@ -44,7 +44,7 @@
   const b64url = t => { const u = new TextEncoder().encode(t); let s = ''; u.forEach(c => { s += String.fromCharCode(c); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
   const modeName = m => m === 'lin' ? 'einzeilig' : m === 'kom' ? 'kompakt' : 'wissenschaftlich';
   const fontName = id => (FONTS.find(f => f.id === id) || {}).name || id;
-  const msgs = () => ['pastemsg', 'copymsg', 'fe-allmsg', 'fe-findmsg', 'fe-anamsg', 'fe-num-msg']
+  const msgs = () => ['pastemsg', 'copymsg', 'fe-allmsg', 'fe-findmsg', 'fe-anamsg', 'fe-num-msg', 'fe-align-msg']
     .map(id => { const el = document.getElementById(id); return el && el.textContent.trim(); }).filter(Boolean);
   function details() {
     const tex = window.mf ? mf.getValue('latex') : '';

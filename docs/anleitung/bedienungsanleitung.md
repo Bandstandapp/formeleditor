@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.3
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.4
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -112,7 +112,7 @@ So kommt die Formel ins Dokument:
 
 ### Mit Gleichungsnummer
 
-Bei **Wissenschaftlich** steht unter den Darstellungen das Kästchen **Gleichungsnummer**. Ist es angekreuzt, schlägt der Editor die nächste Nummer vor, zum Beispiel (4.13), und schaut dafür auf die Nummern davor und danach im Dokument. Die Nummer lässt sich im Feld ändern. **Vorschlag** holt den Vorschlag zurück.
+Unter den Darstellungen steht immer das Kästchen **Gleichungsnummer erzeugen**. Es wirkt nur bei **Wissenschaftlich** und nur bei neuen Formeln; sonst ist es grau, und eine kurze Zeile darunter sagt, warum. Ist es angekreuzt, schlägt der Editor die nächste Nummer vor, zum Beispiel (4.13), und schaut dafür auf die Nummern davor und danach im Dokument. Die Nummer lässt sich im Feld ändern. **Vorschlag** holt den Vorschlag zurück.
 
 Beim Einfügen steht die Formel in einem eigenen Absatz und die Nummer rechtsbündig dahinter. Gibt es (4.13) schon und ist **Folgende Nummern weiterzählen** angekreuzt, macht der Editor aus der alten (4.13) eine (4.14), aus (4.14) eine (4.15) und so weiter, auch an allen Stellen im Text, die darauf verweisen.
 
@@ -123,14 +123,16 @@ Oben in der Vorschau steht ein Lineal wie in Word. Es zeigt die Seite in cm, die
 - Das **blaue Dreieck** legt fest, wo die Formel beginnt, gemessen vom linken Rand.
 - Das **orange Dreieck** legt fest, wo die Gleichungsnummer endet. Die Nummer steht rechtsbündig davor.
 
-Darunter stehen beide Werte in cm. Man kann sie dort auch eintippen. Die Werte gelten für jede neue abgesetzte Formel.
+Darunter stehen beide Werte in cm. Man kann sie dort auch eintippen.
 
-Das Lineal erscheint bei der Darstellung **Wissenschaftlich**, auch wenn eine vorhandene Formel zum Ändern geladen ist. Diese bleibt beim Ersetzen an ihrer Stelle. Erst wenn man ein Dreieck verschiebt, rückt sie beim Ersetzen dorthin.
+Ist **Werte für Formel übernehmen** angekreuzt, kommt jede neue abgesetzte Formel gleich beim Einfügen an diese Stelle, ohne weiteren Knopf. Auch eine geladene Formel rückt beim Ersetzen dorthin. Ohne Häkchen bleibt alles, wie es ist. Eine Formel mitten im Fließtext wird nie eingerückt.
+
+Das Lineal erscheint bei der Darstellung **Wissenschaftlich**, auch wenn eine vorhandene Formel zum Ändern geladen ist.
 
 ![](img/21-nummer.png)
 Caption: Lineal mit Formel ab 2 cm und Nummer bis 15 cm
 
-**Alle Formeln und Nummern im Dokument wie im Lineal ausrichten** setzt auch alle vorhandenen nummerierten Formeln so, dass Formeln und Nummern genau untereinanderstehen. Am besten vorher eine Kopie des Dokuments speichern.
+Der Knopf **Formeln und Nummern im Dokument wie im Lineal ausrichten** setzt alle vorhandenen abgesetzten Formeln so, mit und ohne Nummer, dass Formeln und Nummern genau untereinanderstehen. Ein Balken zeigt, wie weit er ist; am Ende steht **Ausrichtung abgeschlossen**. Am besten vorher eine Kopie des Dokuments speichern.
 
 > Gut zu wissen. Die Nummer ist normaler Text in Word. Sie lässt sich dort auch von Hand ändern.
 

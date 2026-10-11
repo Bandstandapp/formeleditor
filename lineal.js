@@ -1,7 +1,8 @@
 /* Lineal über der Vorschau, wie in Word: cm ab dem linken Seitenrand, graue Seitenränder links und rechts.
    Zwei Reiter legen fest, wo eine abgesetzte Formel beginnt (Einzug von links) und wo ihre Gleichungsnummer
    rechtsbündig endet. Seitenbreite und Ränder kommen aus dem Word-Dokument (Abschnitt an der Cursorstelle).
-   Die Werte gelten für neue Formeln und für „Alle Nummern im Dokument so ausrichten“ (nummern.js). */
+   Mit „Werte für Formel übernehmen“ gelten die Werte beim Einfügen und Ersetzen; der Knopf darunter richtet
+   alle Formeln im Dokument danach aus (nummern.js). */
 (function () {
   const q = s => document.querySelector(s);
   const vorschau = q('section[aria-label="Ergebnis"]');
@@ -26,8 +27,11 @@
 .fe-ruler-vals .f .sw { color: var(--accent); }
 .fe-ruler-vals .n .sw { color: #c25e00; }
 .fe-ruler-vals .n.off { opacity: .45; }
-.fe-ruler .fe-ruler-hint { margin: 0; font-size: .9rem; color: var(--muted); }
-.fe-ruler .fe-ruler-hint[hidden] { display: none; }`;
+.fe-ruler .fe-check { font-size: .95rem; }
+.fe-ruler #fe-align.btn { justify-self: start; text-align: left; width: auto; min-height: 0; padding: 8px 10px; font-size: .95rem; font-weight: 600; }
+.fe-ruler progress { width: 100%; height: 10px; accent-color: var(--accent); }
+.fe-ruler progress[hidden], .fe-ruler #fe-align-msg:empty { display: none; }
+.fe-ruler #fe-align-msg { margin: 0; }`;
   document.head.appendChild(css);
 
   const box = document.createElement('div');
@@ -39,11 +43,17 @@
     '<svg width="16" height="14" viewBox="0 0 16 14"><path d="M8 0 L16 13 L0 13 Z" fill="#c25e00"/></svg></button></div>' +
     '<div class="fe-ruler-vals"><label class="f"><span class="sw"></span>Formel ab <input type="text" inputmode="decimal" data-k="f" aria-label="Formel ab, in cm"> cm</label>' +
     '<label class="n"><span class="sw"></span>Nummer bis <input type="text" inputmode="decimal" data-k="n" aria-label="Nummer bis, in cm"> cm</label></div>' +
-    '<p class="fe-ruler-hint" hidden>Diese Formel bleibt beim Ersetzen an ihrer Stelle. Erst wenn ein Dreieck verschoben wird, rückt sie dorthin.</p>';
+    '<label class="fe-check"><input type="checkbox" id="fe-lineal-use"> Werte für Formel übernehmen</label>' +
+    '<button type="button" class="btn" id="fe-align">Formeln und Nummern im Dokument wie im Lineal ausrichten</button>' +
+    '<progress id="fe-align-bar" max="1" value="0" hidden></progress><p class="hint" id="fe-align-msg" role="status"></p>';
   paper.before(box);
   const bar = box.querySelector('.fe-ruler-bar'), scale = box.querySelector('svg.scale');
   const marks = {f: box.querySelector('.fe-mark[data-k="f"]'), n: box.querySelector('.fe-mark[data-k="n"]')};
   const inputs = {f: box.querySelector('input[data-k="f"]'), n: box.querySelector('input[data-k="n"]')};
+  // Beim Einfügen und Ersetzen die Werte aus dem Lineal nehmen (Standard: ja)
+  const use = box.querySelector('#fe-lineal-use');
+  try { use.checked = localStorage.getItem('fe-lineal-use') !== '0'; } catch (e) { use.checked = true; }
+  use.addEventListener('change', () => { try { localStorage.setItem('fe-lineal-use', use.checked ? '1' : '0'); } catch (e) {} });
 
   // Seite in cm (A4, 2,5 cm Ränder, bis Word etwas anderes meldet)
   let page = {w: 21, l: 2.5, r: 2.5};
@@ -88,9 +98,7 @@
       if (document.activeElement !== inputs[k]) inputs[k].value = fmt(v);
     }
   }
-  let rev = 0, editRev = 0, editing = false;            // rev zählt jede Verschiebung eines Reiters
   function set(k, v) {
-    rev++;
     if (k === 'f') pos.f = v;
     else pos.n = Math.abs(v - tw()) < 1e-6 ? null : v;   // ganz am rechten Rand: bleibt am Rand, auch bei anderen Seiten
     clamp(); draw();
@@ -138,10 +146,8 @@
 
   // Sichtbar in wissenschaftlicher Darstellung, bei neuen und bei geladenen Formeln
   let shown = false;
-  const hint = box.querySelector('.fe-ruler-hint');
   setInterval(() => {
     const ed = FeWord.editing();
-    if (ed !== editing) { editing = ed; editRev = rev; hint.hidden = !ed; }
     const show = mode === 'sci';
     const on = ed || !!(q('#fe-num-on') && q('#fe-num-on').checked);   // geladene Formel: Nummer zählt, falls sie eine hat
     if (show !== shown) { shown = show; box.hidden = !show; if (show) { readPage(); requestAnimationFrame(draw); } }
@@ -157,9 +163,11 @@
   // Werte für Word in Punkt: Einzug links der Formel, Einzug rechts so, dass die Nummer bei „Nummer bis“ endet
   window.FeLineal = {
     visible: () => shown,
-    movedDuringEdit: () => editing && rev !== editRev,
+    use: () => use.checked,
     leftPt: () => pt(pos.f),
     rightPt: () => pt(Math.max(0, tw() - nVal())),
+    // Absatzeigenschaften für das OOXML einer neuen Formel (Twips)
+    pPr: () => '<w:pPr><w:ind w:left="' + Math.round(pt(pos.f) * 20) + '" w:right="' + Math.round(pt(Math.max(0, tw() - nVal())) * 20) + '" w:firstLine="0"/><w:jc w:val="left"/></w:pPr>',
     text: () => 'Formel ab ' + fmt(pos.f) + ' cm, Nummer bis ' + fmt(nVal()) + ' cm',
     readPage,
   };
