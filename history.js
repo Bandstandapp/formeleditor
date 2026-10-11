@@ -16,7 +16,7 @@
   let nextLabel = null;       // Name des Bausteins bzw. Knopfs, der die nächste Änderung auslöst
 
   const tex = () => (window.mf && mf.getValue ? mf.getValue('latex') : '');
-  const short = t => { t = t.split('\\placeholder{}').join('□').replace(/\\(mathbf|mathrm|mathit|boldsymbol)\{([^{}]*)\}/g, '$2').replace(/\s+/g, ' ').trim(); return t.length > 22 ? t.slice(0, 21) + '…' : t; };
+  const short = t => { t = t.split('\\placeholder{}').join('□').replace(/\\textcolor\{[^{}]*\}\{([^{}]*)\}/g, '$1').replace(/\\(mathbf|mathrm|mathit|boldsymbol|bm)\{([^{}]*)\}/g, '$2').replace(/\s+/g, ' ').trim(); return t.length > 22 ? t.slice(0, 21) + '…' : t; };
   const fontName = id => { const f = (typeof FONTS !== 'undefined' ? FONTS : []).find(f => f.id === id); return f ? f.name : id; };
   const valueText = (kind, v) => kind === 'mode' ? (v === 'lin' ? 'einzeilig' : 'wissenschaftlich')
     : kind === 'font' ? fontName(v) : String(v).replace('.', ',') + ' pt';
@@ -57,7 +57,7 @@
   function texLabel(a, b) {
     const d = diff(a, b);
     d.removed = d.removed.split(PH).join('');
-    if (nextLabel) return nextLabel + (/^(Fett|Kursiv|Aufrecht)$/.test(nextLabel) && d.removed ? ' „' + short(d.removed) + '“' : '');
+    if (nextLabel) return nextLabel + (/^(Fett|Kursiv|Aufrecht|Farbe)/.test(nextLabel) && d.removed ? ' „' + short(d.removed) + '“' : '');
     if (!d.removed) return 'Eingabe „' + short(d.inserted) + '“';
     if (!d.inserted) return 'Gelöscht „' + short(d.removed) + '“';
     return 'Geändert „' + short(d.removed) + '“ → „' + short(d.inserted) + '“';
@@ -101,6 +101,8 @@
     const tool = e.target.closest('#tools .tool');
     if (tool) { const n = tool.querySelector('.n'); nextLabel = 'Baustein ' + (n ? n.textContent : tool.getAttribute('aria-label') || ''); return; }
     const st = e.target.closest('.stylebar button');
+    if (e.target.closest('.fe-swatch')) { nextLabel = 'Farbe ' + e.target.closest('.fe-swatch').title; return; }
+    if (st && st.classList.contains('c')) return;
     if (st) nextLabel = st.classList.contains('b') ? 'Fett' : (st.getAttribute('aria-pressed') === 'true' ? 'Aufrecht' : 'Kursiv');
     const mb = e.target.closest('#mode button');
     if (mb && !quiet) { const before = mode; setTimeout(() => { if (mode !== before) add({kind: 'mode', before, after: mode, label: 'Darstellung: ' + valueText('mode', mode)}); }, 0); }

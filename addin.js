@@ -36,19 +36,23 @@
 
   // Rahmen um die Eingabe: grün = so wie im Dokument, orange = geändert, aber noch nicht in Word eingefügt
   let saved = null;
-  const snap = () => JSON.stringify([mf ? mf.getValue('latex') : '', mode, font, sizePt]);
+  const snap = () => JSON.stringify([mf ? mf.getValue('latex').replace(/\s+/g, '') : '', mode, font, sizePt]);   // Leerzeichen im Quelltext zählen nicht
   function markSaved() { saved = snap(); updateFrame(); }
   function updateFrame() {
     if (!mf) return;
     const empty = !mf.getValue('latex').trim();
     const st = saved === null ? (empty ? '' : 'changed') : (snap() === saved ? 'saved' : 'changed');
     if (mf.dataset.state !== st) { if (st) mf.dataset.state = st; else delete mf.dataset.state; }
+    // Unveränderte Formel aus dem Dokument: Der Knopf übernimmt sie nur (alte Formeln danach im neuen Format)
+    const label = !current ? 'In Word einfügen' : st === 'saved' ? 'Ohne Änderung übernehmen' : 'Formel in Word ersetzen';
+    if (insertBtn.textContent !== label) insertBtn.textContent = insertBtn2.textContent = label;
   }
   setInterval(updateFrame, 300);
 
   function setEditing(meta) {
     current = meta;
     insertBtn.textContent = insertBtn2.textContent = meta ? 'Formel in Word ersetzen' : 'In Word einfügen';
+    if (typeof updateFrame === 'function') updateFrame();
   }
 
   // Ein Absatz mit einem einzigen Bild; Word übernimmt es beim Einfügen in die laufende Zeile.
@@ -144,7 +148,7 @@
     sel.font.load('size');
     await ctx.sync();
     const pt = Math.round(sel.font.size || sizePt);
-    return {kind: 'old', range: sel, meta: {tex, mode: standsAlone(para.text) ? 'sci' : 'lin', font, pt: pt > 5 && pt < 40 ? pt : sizePt}};
+    return {kind: 'old', range: sel, meta: {tex, mode: 'sci', pad: standsAlone(para.text) ? 0 : 0.12, font, pt: pt > 5 && pt < 40 ? pt : sizePt}};
   }
 
   async function checkSelection(manual) {
@@ -157,8 +161,8 @@
           setEditing(f.meta);
           markSaved();
           say(pasteMsg, f.kind === 'old'
-            ? 'Alte Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann „Formel in Word ersetzen“ drücken. Danach ist sie im neuen Format.'
-            : 'Formel aus dem Dokument geladen. Ändern und dann „Formel in Word ersetzen“ drücken.', true);
+            ? 'Alte Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann den großen Knopf drücken. Danach ist sie im neuen Format.'
+            : 'Formel aus dem Dokument geladen. Nach dem Ändern „Formel in Word ersetzen“ drücken.', true);
         } else {
           setEditing(null);
           if (manual) say(pasteMsg, 'Im Dokument ist keine Formel aus diesem Editor markiert. Bitte die Formel einmal anklicken.');

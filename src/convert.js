@@ -196,9 +196,10 @@
       } else {
         font = stdFont;
         pt = opts.applyPt && opts.pt ? +opts.pt : j.textPt;
-        mode = standsAlone(textOf(j.para)) ? 'sci' : 'lin';
+        // Der alte Formel-Editor setzt Brüche immer übereinander, auch im Fließtext; so bleibt es
+        mode = 'sci';
         // Im Fließtext etwas Luft links und rechts, wie beim alten Formelobjekt (dort fehlen oft die Leerzeichen)
-        pad = mode === 'lin' ? 0.12 : 0;
+        pad = standsAlone(textOf(j.para)) ? 0 : 0.12;
         if (j.prog !== 'Equation.3') why = j.format + ' wird nicht unterstützt';
         else {
           try {

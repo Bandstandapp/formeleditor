@@ -374,7 +374,7 @@ function frameDoc(fontId) {
   </style>
   <script>
   window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}'}},
-   tex:{packages:{'[+]':['upgreek','enclose']},macros:{lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
+   tex:{packages:{'[+]':['upgreek','enclose']},macros:{bm:['\\\\boldsymbol{#1}',1],lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
    output:{font:'mathjax-${fontId}',linebreaks:{inline:false}},
    svg:{fontCache:'local'},
    startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};
@@ -631,6 +631,7 @@ function init() {
   mf.id = 'mf';
   mf.mathVirtualKeyboardPolicy = 'manual';
   mf.smartFence = true;
+  mf.mathModeSpace = '\\,';            // Leertaste: schmaler Abstand, z. B. in 1.159 652 180 46
   document.getElementById('mfwrap').appendChild(mf);
   mf.setAttribute('aria-label', 'Formel eingeben');
   const setup = () => {

@@ -37,6 +37,13 @@ body.addin .stylebar button { font: inherit; width: 40px; height: 36px; border-r
 body.addin .stylebar button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
 body.addin .stylebar .b { font-weight: 800; }
 body.addin .stylebar .k { font-style: italic; }
+body.addin .stylebar { position: relative; align-items: center; }
+body.addin .stylebar .c { width: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+body.addin .stylebar .c i { font-style: normal; font-weight: 700; border-bottom: 4px solid var(--cur, #FF0000); line-height: 1; padding: 0 2px; }
+body.addin .stylebar .c small { font-size: .7rem; }
+body.addin .fe-swatches { display: flex; gap: 6px; padding: 6px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); }
+body.addin .fe-swatches[hidden] { display: none !important; }
+body.addin .stylebar .fe-swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); padding: 0; }
 body.addin h1, body.addin h2, body.addin h3 { font-family: var(--f-ui) !important; font-weight: 700; }
 .fe-maintabs { order: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 2px solid var(--accent); border-radius: var(--r); overflow: hidden; }
 .fe-maintabs button { font: inherit; font-weight: 700; font-size: 1rem; padding: 10px 6px; border: 0; background: var(--surface); color: var(--accent); cursor: pointer; }
@@ -97,7 +104,7 @@ body.addin .paper iframe { min-height: 0; }`;
   heading(eingabe, 'Eingabe',
     'Hier entsteht die Formel. Zum Ändern einer Formel sie im Dokument anklicken, dann erscheint sie hier.\n\n' +
     'Tippen: / macht einen Bruch, ^ eine Hochzahl, _ einen Index. Die Pfeiltasten wechseln zwischen den Feldern.\n\n' +
-    'F macht markierte Zeichen fett, K schaltet zwischen kursiv und aufrecht um.');
+    'F macht markierte Zeichen fett, K schaltet zwischen kursiv und aufrecht um, A färbt sie. Ohne Markierung gilt das für die nächsten Zeichen. Die Leertaste setzt einen schmalen Abstand, etwa in 1.159 652 180 46.');
   heading(vorschau, 'Vorschau', 'So erscheint die Formel in Word. Der Zoom vergrößert nur diese Ansicht, nicht die Formel im Dokument. Schrift und Schriftgröße gelten für die Formel in der Eingabe.');
 
   // Erklärtexte entfernen; Rückmeldungen (pastemsg, copymsg, Status) bleiben, starten aber leer
@@ -111,6 +118,30 @@ body.addin .paper iframe { min-height: 0; }`;
   bar.className = 'stylebar';
   bar.innerHTML = '<button type="button" class="b" title="Fett" aria-label="Fett" aria-pressed="false">F</button>' +
                   '<button type="button" class="k" title="Kursiv" aria-label="Kursiv" aria-pressed="false">K</button>';
+  // Farbe: kleiner Knopf mit Farbauswahl (Farben wie in Papas Dokumenten); Schwarz entfernt die Farbe
+  const COLORS = [['Schwarz', 'none', '#111'], ['Rot', '#FF0000'], ['Grün', '#00B050'], ['Hellblau', '#00B0F0'], ['Blau', '#4472C4']];
+  const cBtn = document.createElement('button');
+  cBtn.type = 'button'; cBtn.className = 'c'; cBtn.title = cBtn.ariaLabel = 'Farbe';
+  cBtn.setAttribute('aria-expanded', 'false');
+  cBtn.innerHTML = '<i>A</i><small>▾</small>';
+  const sw = document.createElement('div');
+  sw.className = 'fe-swatches'; sw.hidden = true;
+  COLORS.forEach(([name, val, swatch]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fe-swatch'; b.title = b.ariaLabel = name; b.dataset.color = val;
+    b.style.background = swatch || val;
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => {
+      mf.applyStyle({color: val});
+      if (val !== 'none') bar.style.setProperty('--cur', val);
+      sw.hidden = true; cBtn.setAttribute('aria-expanded', 'false');
+      mf.focus(); show();
+    });
+    sw.appendChild(b);
+  });
+  cBtn.addEventListener('mousedown', e => e.preventDefault());
+  cBtn.addEventListener('click', () => { sw.hidden = !sw.hidden; cBtn.setAttribute('aria-expanded', String(!sw.hidden)); });
+  bar.append(cBtn, sw);
   q('#mfwrap').before(bar);
   const [bBtn, kBtn] = bar.querySelectorAll('button');
   const all = v => v === 'all';

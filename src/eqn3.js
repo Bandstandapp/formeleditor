@@ -134,7 +134,7 @@
       if (k === 'tmpl') {
         const sel = n[1], v = n[2], objs = n[4], ls = lines(objs), chars = objs.filter(o => o[0] === 'char');
         const Li = j => ls[j] ? L(ls[j]) : '';
-        if (sel === 15) {
+        if (sel === 15 || sel === 44) {
           const sub = Li(0), sup = Li(1);
           let s = '';
           if ((v === 1 || v === 2) && sub) s += '_{' + sub + '}';
@@ -150,7 +150,16 @@
           if (v === 2) l = '.';
           return '\\left' + l + ' ' + Li(0) + ' \\right' + r;
         }
-        if (sel === 29) {
+        // Integrale (21–28: Grenzen seitlich bzw. 24–26 darüber und darunter) und große Operatoren (29 ff.):
+        // Zeile 0 ist der Inhalt, 1 die untere und 2 die obere Grenze; das Zeichen steht am Ende
+        if (sel >= 21 && sel <= 28) {
+          let s = chars.length ? ch(chars[chars.length - 1][2]) : '\\int';
+          if (sel >= 24 && sel <= 26) s += '\\limits';
+          if (Li(1)) s += '_{' + Li(1) + '}';
+          if (Li(2)) s += '^{' + Li(2) + '}';
+          return s + ' ' + Li(0);
+        }
+        if (sel >= 29 && sel <= 40) {
           let s = chars.length ? ch(chars[chars.length - 1][2]) : '\\sum';
           if (Li(1)) s += '_{' + Li(1) + '}';
           if (Li(2)) s += '^{' + Li(2) + '}';
@@ -159,7 +168,30 @@
         return '{' + objs.map(node).join('') + '}';
       }
       if (k === 'pile') return lines(n[2]).map(L).join('\\\\');
+      if (k === 'matrix') {
+        const ls = lines(n[3]), rows = [];
+        for (let r = 0; r < n[1]; r++) rows.push(ls.slice(r * n[2], (r + 1) * n[2]).map(L).join(' & '));
+        return '\\begin{matrix}' + rows.join('\\\\') + '\\end{matrix}';
+      }
       return '';
+    }
+    // Mehrzeilige Formel auf oberster Ebene: Zeilen am ersten Gleichheitszeichen ausrichten
+    const top = tree.filter(n => n[0] !== 'sz' && n[0] !== 'size');
+    if (top.length === 1 && top[0][0] === 'pile') {
+      const ls = lines(top[0][2]).map(L).filter(t => t.trim());
+      if (ls.length > 1) {
+        const at = t => {          // erstes Relationszeichen außerhalb von Klammern
+          let d = 0;
+          for (let i = 0; i < t.length; i++) {
+            const c = t[i];
+            if (c === '\\') { if (!d && /^\\(approx|le|ge|ne|equiv)(?![a-zA-Z])/.test(t.slice(i))) return t.slice(0, i) + '&' + t.slice(i); i += (t.slice(i).match(/^\\([a-zA-Z]+|.)/) || ['\\'])[0].length - 1; continue; }
+            if (c === '{') d++; else if (c === '}') d--;
+            else if (!d && (c === '=' || c === '<' || c === '>')) return t.slice(0, i) + '&' + t.slice(i);
+          }
+          return '&' + t;
+        };
+        return '\\begin{aligned}' + ls.map(at).join('\\\\') + '\\end{aligned}';
+      }
     }
     return tree.map(node).join('').trim();
   }
