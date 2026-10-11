@@ -34,6 +34,18 @@
   const xmlEsc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const b64utf8 = t => { const u = new TextEncoder().encode(t); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
 
+  // Rahmen um die Eingabe: grün = so wie im Dokument, orange = geändert, aber noch nicht in Word eingefügt
+  let saved = null;
+  const snap = () => JSON.stringify([mf ? mf.getValue('latex') : '', mode, font, sizePt]);
+  function markSaved() { saved = snap(); updateFrame(); }
+  function updateFrame() {
+    if (!mf) return;
+    const empty = !mf.getValue('latex').trim();
+    const st = saved === null ? (empty ? '' : 'changed') : (snap() === saved ? 'saved' : 'changed');
+    if (mf.dataset.state !== st) { if (st) mf.dataset.state = st; else delete mf.dataset.state; }
+  }
+  setInterval(updateFrame, 300);
+
   function setEditing(meta) {
     current = meta;
     insertBtn.textContent = insertBtn2.textContent = meta ? 'Formel in Word ersetzen' : 'In Word einfügen';
@@ -143,6 +155,7 @@
         if (f) {
           loadMeta(f.meta);
           setEditing(f.meta);
+          markSaved();
           say(pasteMsg, f.kind === 'old'
             ? 'Alte Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann „Formel in Word ersetzen“ drücken. Danach ist sie im neuen Format.'
             : 'Formel aus dem Dokument geladen. Ändern und dann „Formel in Word ersetzen“ drücken.', true);
@@ -162,6 +175,8 @@
   function onSelectionChanged() { clearTimeout(selTimer); selTimer = setTimeout(() => checkSelection(false), 150); }
 
   const sayStatus = (text, ok) => { say(status, text, ok); say(status2, text, ok); };
+
+  window.FeWord = {ooxml};   // für bulk.js (Formeln im Dokument neu formatieren)
 
   async function insertIntoWord() {
     const src = mf ? mf.getValue('latex') : '';
@@ -183,6 +198,7 @@
         await ctx.sync();
       });
       setEditing(null);
+      markSaved();
       sayStatus(replaced ? 'Formel im Dokument ersetzt.' : 'Formel eingefügt.', true);
     } catch (e) {
       sayStatus('Einfügen hat nicht geklappt: ' + (e && e.message ? e.message : e));
@@ -195,7 +211,7 @@
   insertBtn2.addEventListener('click', insertIntoWord);
   loadBtn.addEventListener('click', () => checkSelection(true));
   // „Neue Formel“ trennt den Editor von der zuletzt angeklickten Formel
-  $('clear').addEventListener('click', () => setEditing(null));
+  $('clear').addEventListener('click', () => { setEditing(null); saved = null; updateFrame(); });
 
   Office.onReady(info => {
     if (info.host !== Office.HostType.Word) { say(status, 'Dieses Add-in läuft nur in Word.'); return; }

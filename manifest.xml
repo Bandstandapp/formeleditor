@@ -5,10 +5,10 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>c5699d69-d7d5-4412-8150-d9fbb38a6f2a</Id>
-  <Version>1.0.0.0</Version>
+  <Version>1.1.0.0</Version>
   <ProviderName>Jens Landvogt</ProviderName>
   <DefaultLocale>de-DE</DefaultLocale>
-  <DisplayName DefaultValue="Formeleditor"/>
+  <DisplayName DefaultValue="Papas Formeleditor"/>
   <Description DefaultValue="Mathematische und physikalische Formeln in Satzqualität setzen, einfügen und später wieder bearbeiten."/>
   <IconUrl DefaultValue="https://bandstandapp.github.io/formeleditor/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://bandstandapp.github.io/formeleditor/assets/icon-64.png"/>
@@ -79,12 +79,12 @@
         <bt:Url id="Home.Url" DefaultValue="https://bandstandapp.github.io/formeleditor/"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Formeleditor ist bereit"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Papas Formeleditor ist bereit"/>
         <bt:String id="Group.Label" DefaultValue="Formeln"/>
-        <bt:String id="Button.Label" DefaultValue="Formeleditor"/>
+        <bt:String id="Button.Label" DefaultValue="Papas Formeleditor"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="Im Reiter Start auf „Formeleditor“ klicken, um den Editor zu öffnen."/>
+        <bt:String id="GetStarted.Description" DefaultValue="Im Reiter Start auf „Papas Formeleditor“ klicken, um den Editor zu öffnen."/>
         <bt:String id="Button.Tooltip" DefaultValue="Öffnet den Formeleditor am rechten Rand. Eine Formel im Text anklicken lädt sie zum Bearbeiten."/>
       </bt:LongStrings>
     </Resources>

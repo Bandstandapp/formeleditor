@@ -363,6 +363,7 @@ function frameDoc(fontId) {
   p.txt{line-height:1.5;margin:0;max-width:60ch}
   mjx-container{color:#111}
   .wait{color:#888;font:14px Arial,sans-serif}
+  body.sci .only-lin,body.lin .only-sci{display:none}
   </style>
   <script>
   window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}'}},
@@ -372,8 +373,9 @@ function frameDoc(fontId) {
    startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};
   window.__zoom=function(z){document.documentElement.style.fontSize=(20*z)+'px';document.body.style.fontSize=(20*z)+'px';
     parent.postMessage({fe:'h',h:document.body.scrollHeight},'*');};
-  window.__show=function(disp,inl){
-    if(!window.__mjReady){window.__pending=[disp,inl];return;}
+  window.__show=function(disp,inl,m){
+    if(!window.__mjReady){window.__pending=[disp,inl,m];return;}
+    if(m)document.body.className=m;
     const d=document;
     d.getElementById('f').innerHTML='';d.getElementById('i').innerHTML='';
     window.__done=MathJax.tex2svgPromise(disp,{display:false}).then(n=>{d.getElementById('f').appendChild(n);
@@ -405,15 +407,15 @@ function frameDoc(fontId) {
   };
   <\/script>
   <script src="${MJ}/startup.js"><\/script></head><body><div class="page">
-  <p class="lbl">Abgesetzte Gleichung</p>
-  <div class="eq"><div class="f" id="f"><span class="wait">Schrift wird geladen …</span></div><div class="no">(1)</div></div>
-  <p class="lbl">Im Fließtext</p>
-  <p class="txt">According to the presented theory the relation <span id="i"></span> holds for both charged elementary particles, so it can be used in the following chapters without further explanation.</p>
+  <div class="only-sci"><p class="lbl">Abgesetzte Gleichung</p>
+  <div class="eq"><div class="f" id="f"><span class="wait">Schrift wird geladen …</span></div><div class="no">(1)</div></div></div>
+  <div class="only-lin"><p class="lbl">Im Fließtext</p>
+  <p class="txt">The relation <span id="i"></span> holds for both charged particles.</p></div>
   </div></body></html>`;
 }
 const frame = document.getElementById('out');
 let frameFont = null, frameReady = false;
-window.addEventListener('message', e => { if (e.data && e.data.fe === 'h') frame.style.height = Math.max(200, e.data.h + 8) + 'px'; });
+window.addEventListener('message', e => { if (e.data && e.data.fe === 'h') frame.style.height = Math.max(120, e.data.h + 8) + 'px'; });
 // Rohtext-Modus (nach Tippen von \\) verlassen und versehentlich als Text gelandete Befehle reparieren
 function leaveLatex() {
   if (!mf) return;
@@ -435,9 +437,9 @@ function show() {
   if (frameFont !== font) {
     frameFont = font;
     frame.srcdoc = frameDoc(font);
-    frame.onload = () => { try { frame.contentWindow.__zoom(zoom / 100); frame.contentWindow.__show(disp, inline); } catch (e) {} };
+    frame.onload = () => { try { frame.contentWindow.__zoom(zoom / 100); frame.contentWindow.__show(disp, inline, mode); } catch (e) {} };
   } else {
-    try { frame.contentWindow.__show(disp, inline); } catch (e) {}
+    try { frame.contentWindow.__show(disp, inline, mode); } catch (e) {}
   }
 }
 

@@ -11,8 +11,8 @@
     'Equation.DSMT36': 'MathType',
   };
   const formatName = id => FORMATS[id] || (/DSMT/.test(id) ? 'MathType' : 'Formelobjekt ' + id);
-  const NEW = 'Neuer Formeleditor (schon umgewandelt)';
-  const OMML = 'Word-Formel (bleibt unverändert)';
+  const NEW = 'Neues Format (Formeleditor)';
+  const OMML = 'Word-Formel (OMML, bleibt unverändert)';
 
   const unxml = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
   const xmlEsc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -85,43 +85,87 @@
 
   const b64ToBytes = b64 => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 
-  // zip: JSZip-Objekt des Dokuments (wird verändert). render(tex, mode, pt) → {dataUrl|png, svg, wpt, hpt, dpt}
-  async function convertDocx(zip, render, opts) {
-    opts = opts || {};
-    const font = opts.font || 'stix2';
-    const progress = opts.onProgress || (() => {});
+  const FONT_NAMES = {stix2: 'STIX Two', termes: 'Termes', newcm: 'Computer Modern', pagella: 'Pagella', schola: 'Schola', bonum: 'Bonum', fira: 'Fira', dejavu: 'DejaVu'};
+  const OLD_FONT = 'Schrift des alten Formel-Editors';
+
+  // Alle Formeln eines Dokuments finden. Liefert die Teile (XML) und je Formel einen Eintrag in Dokumentreihenfolge.
+  async function scan(zip) {
     const read = async name => (zip.file(name) ? zip.file(name).async('string') : null);
     const sizeOf = sizeResolver((await read('word/styles.xml')) || '');
-    const report = {formats: {}, total: 0, converted: 0, problems: [], unchanged: 0};
-    const count = name => { report.formats[name] = (report.formats[name] || 0) + 1; };
-
     const partNames = Object.keys(zip.files).filter(n => /^word\/(document|footnotes|endnotes|header\d*|footer\d*)\.xml$/.test(n))
       .sort((a, b) => (a === 'word/document.xml' ? -1 : b === 'word/document.xml' ? 1 : a.localeCompare(b)));
-    const parts = [];
-    const usedIds = new Set();
+    const parts = [], items = [];
     for (const name of partNames) {
       const xml = await read(name);
-      (xml.match(/<wp:docPr\b[^>]*>/g) || []).forEach(t => usedIds.add(+attr(t, 'id')));
-      parts.push({name, xml});
-    }
-    let nextId = 1000;
-    const newId = () => { while (usedIds.has(nextId)) nextId++; usedIds.add(nextId); return nextId++; };
-
-    // Erst alle Formeln zählen, damit der Fortschritt stimmt
-    const jobs = [];
-    for (const part of parts) {
-      const {xml} = part;
-      (xml.match(/<wp:docPr\b[^>]*>/g) || []).forEach(t => { if (/^FORMEL:/.test(attr(t, 'descr') || '')) { count(NEW); report.unchanged++; } });
-      (xml.match(/<m:oMath[\s>]/g) || []).forEach(() => { count(OMML); report.unchanged++; });
-      const re = /<w:object\b[\s\S]*?<\/w:object>/g;
+      const part = {name, xml};
+      parts.push(part);
+      const found = [];
       let m;
-      while ((m = re.exec(xml))) {
+      const reObj = /<w:object\b[\s\S]*?<\/w:object>/g;
+      while ((m = reObj.exec(xml))) {
         const prog = (m[0].match(/<o:OLEObject\b[^>]*\bProgID="([^"]+)"/) || [])[1];
         if (!prog || !/^Equation\./.test(prog)) continue;       // andere eingebettete Objekte (Tabellen …) nicht anfassen
-        jobs.push({part, start: m.index, end: m.index + m[0].length, obj: m[0], prog});
+        found.push({kind: 'old', part, start: m.index, end: m.index + m[0].length, obj: m[0], prog, format: formatName(prog)});
+      }
+      const reDr = /<w:drawing>[\s\S]*?<\/w:drawing>/g;
+      while ((m = reDr.exec(xml))) {
+        const dp = m[0].match(/<wp:docPr\b[^>]*>/);
+        const descr = dp && attr(dp[0], 'descr');
+        if (!descr || !/^FORMEL:/.test(descr)) continue;
+        let meta = null;
+        try { meta = JSON.parse(descr.slice(7)); } catch (e) {}
+        if (!meta || typeof meta.tex !== 'string') continue;
+        found.push({kind: 'new', part, start: m.index, end: m.index + m[0].length, obj: m[0], meta, format: NEW});
+      }
+      const reMath = /<m:oMath[\s>][\s\S]*?<\/m:oMath>/g;
+      while ((m = reMath.exec(xml))) found.push({kind: 'omml', part, start: m.index, end: m.index + m[0].length, format: OMML});
+      found.sort((a, b) => a.start - b.start);
+      for (const f of found) {
+        const rs = Math.max(xml.lastIndexOf('<w:r>', f.start), xml.lastIndexOf('<w:r ', f.start));
+        const ps = Math.max(xml.lastIndexOf('<w:p>', f.start), xml.lastIndexOf('<w:p ', f.start));
+        const pe = xml.indexOf('</w:p>', f.end);
+        f.rs = rs; f.reEnd = xml.indexOf('</w:r>', f.end);
+        f.runOpen = rs >= 0 ? xml.slice(rs, xml.indexOf('>', rs) + 1) : '';
+        const before = rs >= 0 ? xml.slice(rs + f.runOpen.length, f.start) : '';
+        const rPrM = before.match(/^\s*(<w:rPr>[\s\S]*?<\/w:rPr>)\s*$/);
+        f.rPr = rPrM ? rPrM[1] : '';
+        f.simple = f.kind !== 'omml' && rs >= 0 && (rPrM !== null || /^\s*$/.test(before)) && /^\s*$/.test(xml.slice(f.end, f.reEnd));
+        f.para = xml.slice(ps, pe);
+        const pStyle = (f.para.match(/<w:pPr>[\s\S]*?<w:pStyle w:val="([^"]+)"/) || [])[1];
+        f.textPt = Math.round(sizeOf(f.rPr, pStyle) * 2) / 2;
+        const ctx = textOf(xml.slice(ps, f.start)).trim();
+        f.where = ctx ? 'nach „…' + ctx.slice(-40) + '“' : 'am Absatzanfang';
+        if (f.kind === 'new') { f.font = FONT_NAMES[f.meta.font] || f.meta.font || '?'; f.pt = +f.meta.pt || f.textPt; }
+        else if (f.kind === 'old') { f.font = OLD_FONT; f.pt = f.textPt; }
+        else { f.font = 'Cambria Math (Word)'; f.pt = f.textPt; }
+        items.push(f);
       }
     }
-    report.total = jobs.length + report.unchanged;
+    items.forEach((f, i) => { f.number = i + 1; });
+    return {parts, items, read};
+  }
+
+  // Übersicht: Anzahl, Formate, Schriften, Schriftgrößen
+  async function analyze(zip) {
+    const {items} = await scan(zip);
+    const tally = key => items.reduce((o, f) => { o[f[key]] = (o[f[key]] || 0) + 1; return o; }, {});
+    return {total: items.length, formats: tally('format'), fonts: tally('font'), sizes: tally('pt')};
+  }
+
+  // zip: JSZip-Objekt des Dokuments (wird verändert). render(tex, mode, pt, pad, font) → {dataUrl|png, svg, wpt, hpt, dpt}
+  // opts: font/pt (Standard), applyFont/applyPt (Standard auch auf vorhandene neue Formeln anwenden), onProgress
+  async function convertDocx(zip, render, opts) {
+    opts = opts || {};
+    const stdFont = opts.font || 'stix2';
+    const progress = opts.onProgress || (() => {});
+    const {parts, items, read} = await scan(zip);
+    const report = {formats: {}, total: items.length, converted: 0, reformatted: 0, problems: [], unchanged: 0};
+    items.forEach(f => { report.formats[f.format] = (report.formats[f.format] || 0) + 1; });
+
+    const usedIds = new Set();
+    parts.forEach(p => (p.xml.match(/<wp:docPr\b[^>]*>/g) || []).forEach(t => usedIds.add(+attr(t, 'id'))));
+    let nextId = 1000;
+    const newId = () => { while (usedIds.has(nextId)) nextId++; usedIds.add(nextId); return nextId++; };
 
     const relsOf = {};
     async function rels(part) {
@@ -132,72 +176,63 @@
       (xml.match(/<Relationship\b[^>]*>/g) || []).forEach(t => { map[attr(t, 'Id')] = attr(t, 'Target'); });
       return (relsOf[part.name] = {name: relName, xml, map, add: ''});
     }
-    const resolve = (target) => {
-      const segs = ('word/' + target.replace(/^\//, '').replace(/^word\//, '')).split('/');
+    const resolve = target => {
       const out = [];
-      segs.forEach(s => { if (s === '..') out.pop(); else if (s !== '.' && s) out.push(s); });
+      ('word/' + target.replace(/^\//, '').replace(/^word\//, '')).split('/').forEach(s => { if (s === '..') out.pop(); else if (s !== '.' && s) out.push(s); });
       return out.join('/');
     };
 
+    const jobs = items.filter(f => f.kind === 'old' || (f.kind === 'new' && (opts.applyFont || opts.applyPt)));
+    report.unchanged = items.length - jobs.length;
     let media = 0;
     for (let k = 0; k < jobs.length; k++) {
       const j = jobs[k], xml = j.part.xml;
       progress(k + 1, jobs.length);
-      count(formatName(j.prog));
-      const rs = Math.max(xml.lastIndexOf('<w:r>', j.start), xml.lastIndexOf('<w:r ', j.start));
-      const reEnd = xml.indexOf('</w:r>', j.end);
-      const runOpen = xml.slice(rs, xml.indexOf('>', rs) + 1);
-      const before = xml.slice(runOpen.length + rs, j.start);
-      const rPrM = before.match(/^\s*(<w:rPr>[\s\S]*?<\/w:rPr>)\s*$/);
-      const simple = rPrM !== null || /^\s*$/.test(before);
-      const rPr = rPrM ? rPrM[1] : '';
-      const after = xml.slice(j.end, reEnd);
-      const ps = Math.max(xml.lastIndexOf('<w:p>', j.start), xml.lastIndexOf('<w:p ', j.start));
-      const pe = xml.indexOf('</w:p>', j.end);
-      const para = xml.slice(ps, pe);
-      const pStyle = (para.match(/<w:pPr>[\s\S]*?<w:pStyle w:val="([^"]+)"/) || [])[1];
-      const ctx = textOf(xml.slice(ps, j.start)).trim();
-      const where = ctx ? 'nach „…' + ctx.slice(-40) + '“' : 'am Absatzanfang';
-      j.number = k + 1;
-      let tex = null, why = null;
-      if (j.prog !== 'Equation.3') why = formatName(j.prog) + ' wird nicht unterstützt';
-      else {
-        try {
-          const rid = attr(j.obj.match(/<o:OLEObject\b[^>]*>/)[0], 'r:id');
-          const r = await rels(j.part);
-          const target = r.map[rid];
-          if (!target) throw Object.assign(new Error('rel'), {userText: 'Formeldaten fehlen'});
-          const f = zip.file(resolve(target));
-          if (!f) throw Object.assign(new Error('part'), {userText: 'Formeldaten fehlen'});
-          tex = root.Eqn3.oleToLatex(await f.async('uint8array'));
-          if (!tex || !tex.trim()) throw Object.assign(new Error('leer'), {userText: 'Formel ist leer'});
-        } catch (e) { why = e.userText || 'Formeldaten beschädigt, nicht lesbar'; }
+      let tex = null, why = null, mode, pt, font, pad;
+      if (j.kind === 'new') {
+        tex = j.meta.tex; mode = j.meta.mode === 'lin' ? 'lin' : 'sci'; pad = j.meta.pad || 0;
+        font = opts.applyFont ? stdFont : (j.meta.font || stdFont);
+        pt = opts.applyPt && opts.pt ? +opts.pt : (+j.meta.pt || j.textPt);
+      } else {
+        font = stdFont;
+        pt = opts.applyPt && opts.pt ? +opts.pt : j.textPt;
+        mode = standsAlone(textOf(j.para)) ? 'sci' : 'lin';
+        // Im Fließtext etwas Luft links und rechts, wie beim alten Formelobjekt (dort fehlen oft die Leerzeichen)
+        pad = mode === 'lin' ? 0.12 : 0;
+        if (j.prog !== 'Equation.3') why = j.format + ' wird nicht unterstützt';
+        else {
+          try {
+            const rid = attr(j.obj.match(/<o:OLEObject\b[^>]*>/)[0], 'r:id');
+            const target = (await rels(j.part)).map[rid];
+            if (!target) throw Object.assign(new Error('rel'), {userText: 'Formeldaten fehlen'});
+            const f = zip.file(resolve(target));
+            if (!f) throw Object.assign(new Error('part'), {userText: 'Formeldaten fehlen'});
+            tex = root.Eqn3.oleToLatex(await f.async('uint8array'));
+            if (!tex || !tex.trim()) throw Object.assign(new Error('leer'), {userText: 'Formel ist leer'});
+          } catch (e) { why = e.userText || 'Formeldaten beschädigt, nicht lesbar'; tex = null; }
+        }
       }
-      const pt = Math.round(sizeOf(rPr, pStyle) * 2) / 2;
-      const mode = standsAlone(textOf(para)) ? 'sci' : 'lin';
-      // Im Fließtext etwas Luft links und rechts, wie beim alten Formelobjekt (dort fehlen oft die Leerzeichen)
-      const pad = mode === 'lin' ? 0.12 : 0;
       let img = null;
       if (tex) {
-        try { img = await render(tex, mode, pt, pad); } catch (e) { why = 'Neue Darstellung fehlgeschlagen'; }
+        try { img = await render(tex, mode, pt, pad, font); } catch (e) { why = 'Neue Darstellung fehlgeschlagen'; }
       }
-      if (img && simple && /^\s*$/.test(after)) {
+      if (img && j.simple) {
         const r = await rels(j.part);
         const n = ++media;
         const ridPng = 'rIdFe' + n + 'p', ridSvg = 'rIdFe' + n + 's';
-        const png = img.png || b64ToBytes(img.dataUrl.split(',')[1]);
-        zip.file('word/media/fe' + n + '.png', png);
+        zip.file('word/media/fe' + n + '.png', img.png || b64ToBytes(img.dataUrl.split(',')[1]));
         zip.file('word/media/fe' + n + '.svg', img.svg);
         r.add += '<Relationship Id="' + ridPng + '" Type="' + RELNS + '/image" Target="media/fe' + n + '.png"/>' +
                  '<Relationship Id="' + ridSvg + '" Type="' + RELNS + '/image" Target="media/fe' + n + '.svg"/>';
-        const meta = 'FORMEL:' + JSON.stringify(pad ? {tex, mode, font, pt, pad} : {tex, mode, font, pt});
-        j.out = runOpen + setRPr(rPr, 'position', -Math.round(img.dpt * 2)) + drawingXml(newId(), ridPng, ridSvg, img, meta) + '</w:r>';
-        j.from = rs; j.to = reEnd + 6;
-        report.converted++;
+        const m = {tex, mode, font, pt};
+        if (pad) m.pad = pad;
+        j.out = j.runOpen + setRPr(j.rPr, 'position', -Math.round(img.dpt * 2)) + drawingXml(newId(), ridPng, ridSvg, img, 'FORMEL:' + JSON.stringify(m)) + '</w:r>';
+        j.from = j.rs; j.to = j.reEnd + 6;
+        if (j.kind === 'old') report.converted++; else report.reformatted++;
       } else {
         if (!why) why = 'Formel steht an einer ungewöhnlichen Stelle';
-        report.problems.push({number: j.number, where, why, tex});
-        if (simple) { j.out = runOpen + setRPr(rPr, 'highlight', 'yellow') + xml.slice(j.start, reEnd + 6); j.from = rs; j.to = reEnd + 6; }
+        report.problems.push({number: j.number, where: j.where, why, tex});
+        if (j.simple) { j.out = j.runOpen + setRPr(j.rPr, 'highlight', 'yellow') + xml.slice(j.start, j.reEnd + 6); j.from = j.rs; j.to = j.reEnd + 6; }
       }
     }
 
@@ -217,10 +252,11 @@
       if (!/Extension="svg"/i.test(ct)) ct = ct.replace('<Default ', '<Default Extension="svg" ContentType="image/svg+xml"/><Default ');
       zip.file('[Content_Types].xml', ct);
     }
+    report.changed = media;
     return report;
   }
 
-  const api = {convertDocx, standsAlone, setRPr, sizeResolver, formatName};
+  const api = {convertDocx, analyze, scan, standsAlone, setRPr, sizeResolver, formatName, FONT_NAMES};
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.FeConvert = api;
 })(typeof window !== 'undefined' ? window : globalThis);
