@@ -21,7 +21,12 @@
   const eingabeRow = document.querySelector('section[aria-label="Eingabe"] .row');
   const row2 = document.createElement('div');
   row2.className = 'row';
-  row2.appendChild(insertBtn2);
+  row2.classList.add('fe-insrow');
+  // Abbrechen verwirft alle Änderungen seit dem Laden bzw. dem letzten Einfügen
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button'; cancelBtn.className = 'btn fe-cancel'; cancelBtn.textContent = 'Abbrechen';
+  cancelBtn.disabled = true;
+  row2.append(cancelBtn, insertBtn2);
   eingabeRow.after(row2, status2);
   const oldLoad = $('fromword');
   const loadBtn = oldLoad.cloneNode(true);
@@ -35,14 +40,30 @@
   const b64utf8 = t => { const u = new TextEncoder().encode(t); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
 
   // Rahmen um die Eingabe: grün = so wie im Dokument, orange = geändert, aber noch nicht in Word eingefügt
-  let saved = null;
+  let saved = null, savedState = null;
   const snap = () => JSON.stringify([mf ? mf.getValue('latex').replace(/\s+/g, '') : '', mode, font, sizePt]);   // Leerzeichen im Quelltext zählen nicht
-  function markSaved() { saved = snap(); updateFrame(); }
+  function markSaved() {
+    saved = snap();
+    savedState = {tex: mf.getValue('latex'), mode, font, pt: sizePt};
+    updateFrame();
+  }
+  function cancelEdit() {
+    if (savedState) {
+      loadMeta(savedState);
+      say(pasteMsg, 'Änderungen verworfen.', true);
+    } else {
+      mf.setValue('', {silenceNotifications: true});
+      show();
+      say(pasteMsg, '');
+    }
+    updateFrame();
+  }
   function updateFrame() {
     if (!mf) return;
     const empty = !mf.getValue('latex').trim();
     const st = saved === null ? (empty ? '' : 'changed') : (snap() === saved ? 'saved' : 'changed');
     if (mf.dataset.state !== st) { if (st) mf.dataset.state = st; else delete mf.dataset.state; }
+    cancelBtn.disabled = st !== 'changed';
     // Unveränderte Formel aus dem Dokument: Der Knopf übernimmt sie nur (alte Formeln danach im neuen Format)
     const label = !current ? 'In Word einfügen' : st === 'saved' ? 'Ohne Änderung übernehmen' : 'Formel in Word ersetzen';
     if (insertBtn.textContent !== label) insertBtn.textContent = insertBtn2.textContent = label;
@@ -215,7 +236,8 @@
   insertBtn2.addEventListener('click', insertIntoWord);
   loadBtn.addEventListener('click', () => checkSelection(true));
   // „Neue Formel“ trennt den Editor von der zuletzt angeklickten Formel
-  $('clear').addEventListener('click', () => { setEditing(null); saved = null; updateFrame(); });
+  $('clear').addEventListener('click', () => { setEditing(null); saved = savedState = null; updateFrame(); });
+  cancelBtn.addEventListener('click', cancelEdit);
 
   Office.onReady(info => {
     if (info.host !== Office.HostType.Word) { say(status, 'Dieses Add-in läuft nur in Word.'); return; }

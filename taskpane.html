@@ -353,7 +353,8 @@ function tf(nodes, m, script) {
   return out;
 }
 function prep(tex) {
-  return tex.replace(/\\hbar(?![a-zA-Z])/g, '\\hbarh').replace(/\\hslash(?![a-zA-Z])/g, '\\hslashd').replace(/\\unicode\{["x]?0?19[Bb]\}|ƛ/g, '\\lambdabar ').replace(/\\char"019B/g, '\\lambdabar ');
+  return tex.replace(/(?<!\\),/g, '{,}')     // Komma ohne nachfolgenden Abstand (1,5 und r_{1,2})
+    .replace(/\\hbar(?![a-zA-Z])/g, '\\hbarh').replace(/\\hslash(?![a-zA-Z])/g, '\\hslashd').replace(/\\unicode\{["x]?0?19[Bb]\}|ƛ/g, '\\lambdabar ').replace(/\\char"019B/g, '\\lambdabar ');
 }
 function render(tex, m, display) {
   const t = ser(tf(parse(prep(tex)), m, false));
@@ -369,6 +370,9 @@ function frameDoc(fontId) {
   .eq{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin:4px 0 22px;min-height:40px}
   .eq .f{grid-column:2;overflow-x:auto;max-width:100%;padding:.15em 0}
   .eq .no{grid-column:3;justify-self:end;padding-left:12px}
+  body.sci .eq{grid-template-columns:1fr auto}
+  body.sci .eq .f{grid-column:1;justify-self:start}
+  body.sci .eq .no{grid-column:2}
   p.txt{line-height:1.5;margin:0;max-width:60ch}
   mjx-container{color:#111}
   .wait{color:#888;font:14px Arial,sans-serif}
@@ -633,7 +637,6 @@ function init() {
   mf.id = 'mf';
   mf.mathVirtualKeyboardPolicy = 'manual';
   mf.smartFence = true;
-  mf.mathModeSpace = '\\,';            // Leertaste: schmaler Abstand, z. B. in 1.159 652 180 46
   document.getElementById('mfwrap').appendChild(mf);
   mf.setAttribute('aria-label', 'Formel eingeben');
   const setup = () => {
@@ -649,6 +652,20 @@ function init() {
   else mf.addEventListener('mount', setup, {once: true});
   // Backslash öffnet in MathLive einen Rohtext-Modus, den Papa nicht braucht
   mf.addEventListener('keydown', e => { if (e.key === '\\') { e.preventDefault(); e.stopPropagation(); } }, {capture: true});
+  // Leertaste zwischen Ziffern: kleiner Abstand für Zahlengruppen wie 1.159 652 180 46.
+  // Der Abstand entsteht erst, wenn wieder eine Ziffer folgt; vor = oder + bleibt die Leertaste ohne Wirkung.
+  let gapPending = false;
+  mf.addEventListener('keydown', e => {
+    if (e.key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey && mf.mode === 'math') {
+      let before = '';
+      try { before = mf.getValue(0, mf.position, 'latex'); } catch (err) {}
+      e.preventDefault(); e.stopPropagation();
+      gapPending = /[0-9]$/.test(before);
+      return;
+    }
+    if (gapPending && /^[0-9]$/.test(e.key)) mf.insert('\\:', {format: 'latex'});
+    if (e.key !== 'Shift') gapPending = false;
+  }, {capture: true});
   mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); });
   mf.addEventListener('input', () => { clearTimeout(window.__t); window.__t = setTimeout(show, 250); });
   document.getElementById('undo').onclick = () => { mf.executeCommand('undo'); show(); };
@@ -678,13 +695,13 @@ body.addin .settings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>
-<script>window.FE_VERSION = {"version": "1.6.0", "datum": "2026-10-11", "neu": "Integrale und mehrzeilige Formeln aus dem alten Formel-Editor werden richtig umgewandelt, Formeln im Fließtext bleiben wissenschaftlich, Farbe für Zeichen, Leertaste in Zahlen, fette griechische Buchstaben, Knopf „Ohne Änderung übernehmen“."};</script>
-<script src="eqn3.js?v=1.6.0"></script>
-<script src="convert.js?v=1.6.0"></script>
-<script src="addin.js?v=1.6.0"></script>
-<script src="layout.js?v=1.6.0"></script>
-<script src="history.js?v=1.6.0"></script>
-<script src="bulk.js?v=1.6.0"></script>
-<script src="setup.js?v=1.6.0"></script>
+<script>window.FE_VERSION = {"version": "1.6.1", "datum": "2026-10-11", "neu": "Knopf „Abbrechen“ verwirft Änderungen, kein Abstand mehr nach dem Komma, etwas größerer Abstand mit der Leertaste, wissenschaftliche Vorschau beginnt am linken Rand."};</script>
+<script src="eqn3.js?v=1.6.1"></script>
+<script src="convert.js?v=1.6.1"></script>
+<script src="addin.js?v=1.6.1"></script>
+<script src="layout.js?v=1.6.1"></script>
+<script src="history.js?v=1.6.1"></script>
+<script src="bulk.js?v=1.6.1"></script>
+<script src="setup.js?v=1.6.1"></script>
 </body>
 </html>
