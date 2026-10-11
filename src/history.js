@@ -154,8 +154,8 @@
   // Oberfläche: Pfeil neben den Knöpfen und eine aufklappende Liste darunter
   const css = document.createElement('style');
   css.textContent = `
-.fe-split { display: flex; min-width: 0; }
-.fe-split > .btn:first-child { flex: 1; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.fe-split { display: flex; }
+.fe-split > .btn:first-child { flex: 1; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .fe-split > .fe-caret { flex: 0 0 22px; padding: 0 !important; border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; font-size: .8rem; }
 .fe-split > .fe-caret[aria-expanded="true"] { background: var(--accent); color: #fff; }
 .fe-hist { margin-top: 8px; border: 1.5px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 8px 10px; font-family: var(--f-ui); }
@@ -167,7 +167,6 @@
 .fe-hist li .off { color: var(--muted, #6b7280); font-size: .78rem; margin-left: auto; white-space: nowrap; }
 .fe-hist .fe-hrow { display: flex; gap: 6px; flex-wrap: wrap; }
 .fe-hist .fe-hrow .btn.btn { flex: 1 1 auto; width: auto; min-height: 0; padding: 7px 10px; font-size: .88rem; }
-body.addin .editrow { grid-template-columns: 1.3fr 1.3fr 1fr; }
 .fe-hist .fe-hmsg { margin: 6px 0 0; font-size: .82rem; }
 .fe-hist .fe-empty { font-size: .85rem; color: var(--muted, #6b7280); margin: 2px 0 8px; }`;
   document.head.appendChild(css);

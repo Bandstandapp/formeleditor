@@ -643,7 +643,8 @@ function init() {
       lambdabar: {def: '\\mathrlap{\\mkern4mu\\raisebox{0.52em}{\\rule{0.3em}{0.05em}}}\\lambda', captureSelection: true, expand: false},
       uppi: {def: '\\pi', captureSelection: true, expand: false}
     });
-    mf.setValue(SAMPLES.length > 1 ? SAMPLES[1].tex : 'E=mc^2', {silenceNotifications: true});
+    // Im Add-in startet der Editor leer; die Web-Fassung zeigt ein Beispiel
+    mf.setValue(ADDIN ? '' : (SAMPLES.length > 1 ? SAMPLES[1].tex : 'E=mc^2'), {silenceNotifications: true});
     show();
   };
   if (mf.isConnected && mf.getValue) { try { setup(); } catch (e) { mf.addEventListener('mount', setup, {once: true}); } }

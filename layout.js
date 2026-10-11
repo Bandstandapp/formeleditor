@@ -51,8 +51,10 @@ body.addin h1, body.addin h2, body.addin h3 { font-family: var(--f-ui) !importan
 .fe-maintabs button:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
 body.addin:not(.tab-doc) section[aria-label="Dokument"] { display: none !important; }
 body.addin.tab-doc section[aria-label="Bausteine"], body.addin.tab-doc section[aria-label="Eingabe"], body.addin.tab-doc section[aria-label="Ergebnis"] { display: none !important; }
-body.addin .editrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-body.addin .editrow .btn { padding: 6px 2px; font-size: .85rem; white-space: nowrap; }
+body.addin .editrow { display: flex; flex-wrap: wrap; gap: 5px; }
+body.addin .editrow > * { flex: 1 1 auto; }   /* Knöpfe brechen in eine zweite Zeile um, statt abgeschnitten zu werden */
+body.addin .editrow .btn.btn { padding: 6px 5px; font-size: .8rem; white-space: nowrap; }
+body.addin .editrow .btn.fe-caret { padding: 0; flex-basis: 20px; }
 body.addin button.btn.primary { width: 100%; font-size: 1.15rem; padding: 12px 14px; }
 body.addin .copyrow { display: block; }
 body.addin .fe-insrow { display: flex; flex-direction: column-reverse; gap: 6px; }

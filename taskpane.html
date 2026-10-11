@@ -645,7 +645,8 @@ function init() {
       lambdabar: {def: '\\mathrlap{\\mkern4mu\\raisebox{0.52em}{\\rule{0.3em}{0.05em}}}\\lambda', captureSelection: true, expand: false},
       uppi: {def: '\\pi', captureSelection: true, expand: false}
     });
-    mf.setValue(SAMPLES.length > 1 ? SAMPLES[1].tex : 'E=mc^2', {silenceNotifications: true});
+    // Im Add-in startet der Editor leer; die Web-Fassung zeigt ein Beispiel
+    mf.setValue(ADDIN ? '' : (SAMPLES.length > 1 ? SAMPLES[1].tex : 'E=mc^2'), {silenceNotifications: true});
     show();
   };
   if (mf.isConnected && mf.getValue) { try { setup(); } catch (e) { mf.addEventListener('mount', setup, {once: true}); } }
@@ -695,13 +696,13 @@ body.addin .settings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>
-<script>window.FE_VERSION = {"version": "1.6.1", "datum": "2026-10-11", "neu": "Knopf „Abbrechen“ verwirft Änderungen, kein Abstand mehr nach dem Komma, etwas größerer Abstand mit der Leertaste, wissenschaftliche Vorschau beginnt am linken Rand."};</script>
-<script src="eqn3.js?v=1.6.1"></script>
-<script src="convert.js?v=1.6.1"></script>
-<script src="addin.js?v=1.6.1"></script>
-<script src="layout.js?v=1.6.1"></script>
-<script src="history.js?v=1.6.1"></script>
-<script src="bulk.js?v=1.6.1"></script>
-<script src="setup.js?v=1.6.1"></script>
+<script>window.FE_VERSION = {"version": "1.6.2", "datum": "2026-10-11", "neu": "Der Editor startet leer, die Knöpfe unter der Eingabe sind immer vollständig zu sehen, neue bebilderte Bedienungsanleitung."};</script>
+<script src="eqn3.js?v=1.6.2"></script>
+<script src="convert.js?v=1.6.2"></script>
+<script src="addin.js?v=1.6.2"></script>
+<script src="layout.js?v=1.6.2"></script>
+<script src="history.js?v=1.6.2"></script>
+<script src="bulk.js?v=1.6.2"></script>
+<script src="setup.js?v=1.6.2"></script>
 </body>
 </html>
