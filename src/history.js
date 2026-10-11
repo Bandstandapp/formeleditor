@@ -18,7 +18,7 @@
   const tex = () => (window.mf && mf.getValue ? mf.getValue('latex') : '');
   const short = t => { t = t.split('\\placeholder{}').join('□').replace(/\\textcolor\{[^{}]*\}\{([^{}]*)\}/g, '$1').replace(/\\(mathbf|mathrm|mathit|boldsymbol|bm)\{([^{}]*)\}/g, '$2').replace(/\s+/g, ' ').trim(); return t.length > 22 ? t.slice(0, 21) + '…' : t; };
   const fontName = id => { const f = (typeof FONTS !== 'undefined' ? FONTS : []).find(f => f.id === id); return f ? f.name : id; };
-  const valueText = (kind, v) => kind === 'mode' ? (v === 'lin' ? 'einzeilig' : 'wissenschaftlich')
+  const valueText = (kind, v) => kind === 'mode' ? (v === 'lin' ? 'einzeilig' : v === 'kom' ? 'kompakt' : 'wissenschaftlich')
     : kind === 'font' ? fontName(v) : String(v).replace('.', ',') + ' pt';
 
   // Geänderte Stelle zwischen zwei Ständen: gemeinsamer Anfang und gemeinsames Ende bleiben stehen

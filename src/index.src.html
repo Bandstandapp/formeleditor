@@ -61,6 +61,12 @@ header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
 .sl { position: relative; display: inline-block; }
 .sl > span { position: absolute; left: .12em; top: .3em; width: .34em; border-top: .07em solid currentColor; transform: rotate(-35deg); }
 .sl.lb > span { left: .14em; top: .22em; width: .3em; transform: none; }
+.mz { display: inline-grid; font-size: .5em; line-height: 1.05; justify-items: start; text-align: left; white-space: nowrap; }
+.mz.c { justify-items: center; }
+.mz.br { border-left: 2px solid currentColor; border-radius: 6px 0 0 6px; padding-left: 3px; }
+.mx { display: inline-flex; align-items: center; gap: 1px; font-size: 1.05em; }
+.mx > .mz { font-size: .48em; }
+.op { font-size: .55em; font-family: var(--f-ui); white-space: nowrap; }
 .fr { display: inline-grid; justify-items: center; font-size: 1.1rem; line-height: 1.05; }
 .fr span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 3px; }
 button:focus-visible, .tab:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -120,6 +126,7 @@ details code { display: block; white-space: pre-wrap; word-break: break-all; fon
       <button class="tab" role="tab" id="tab-aufbau" aria-selected="true" data-tab="aufbau">Aufbau</button>
       <button class="tab" role="tab" id="tab-greek" aria-selected="false" data-tab="greek">Griechisch</button>
       <button class="tab" role="tab" id="tab-zeichen" aria-selected="false" data-tab="zeichen">Zeichen</button>
+      <button class="tab" role="tab" id="tab-einheiten" aria-selected="false" data-tab="einheiten">Einheiten</button>
     </div>
     <div id="tools" class="tools"></div>
   </section>
@@ -143,6 +150,7 @@ details code { display: block; white-space: pre-wrap; word-break: break-all; fon
         <p class="label">Darstellung</p>
         <div class="seg" id="mode">
           <button type="button" id="mode-sci" data-mode="sci" aria-pressed="true">Wissenschaftlich<small>Brüche übereinander</small></button>
+          <button type="button" id="mode-kom" data-mode="kom" aria-pressed="false">Kompakt<small>kleine Brüche, für den Fließtext</small></button>
           <button type="button" id="mode-lin" data-mode="lin" aria-pressed="false">Einzeilig<small>Brüche mit Schrägstrich, für den Fließtext</small></button>
         </div>
       </div>
@@ -194,7 +202,10 @@ const FONTS = [
   {id: 'fira', name: 'Fira', note: 'ohne Serifen, modern'},
   {id: 'dejavu', name: 'DejaVu', note: 'ohne Serifen, breit'}
 ];
-const MJ = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3';
+// Im Repo (Add-in und editor.html) kommen MathJax und die Schriften aus vendor/, nicht von einem fremden Server
+const LOCAL = /*@@LOCAL@@*/false;
+const MJ = LOCAL ? new URL('vendor/mathjax', location.href).href : 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3';
+const MJFONTS = LOCAL ? new URL('vendor/mathjax-fonts', location.href).href : 'https://cdn.jsdelivr.net/npm/@mathjax';
 const LAMBDASLASH = '{\\rlap{\\kern0.06em\\raise{0.44em}{\\scriptscriptstyle\\enclose{updiagonalstrike}{\\phantom{\\rule{0.12em}{0.05em}}}}}\\lambda\\kern-0.07em}';
 const HBARH = '{\\rlap{\\kern0.07em\\rule[0.52em]{0.36em}{0.042em}}h}';
 const HSLASHD = '{\\rlap{\\kern0.10em\\raise{0.40em}{\\scriptscriptstyle\\enclose{updiagonalstrike}{\\phantom{\\rule{0.05em}{0.02em}}}}}h}';
@@ -212,6 +223,17 @@ const TOOLS = {
     {g: '[ ]', n: 'Eckige Klammern', ins: '\\left[#@\\right]'},
     {g: '{ }', n: 'Geschweifte Klammern', ins: '\\left\\{#@\\right\\}'},
     {g: '| |', n: 'Betrag', ins: '\\left|#@\\right|'},
+    {g: '⟨ ⟩', n: 'Spitze Klammern', ins: '\\left\\langle #@\\right\\rangle'},
+    {g: '<span class="mz"><span><i>a</i> = <i>b</i></span><span>&nbsp;&nbsp;= <i>c</i></span></span>', n: 'Mehrzeilig', ins: '\\begin{aligned}#@&=#?\\\\&=#?\\end{aligned}'},
+    {g: '<span class="mz br"><span><i>x</i>+<i>y</i>=1</span><span><i>x</i>−<i>y</i>=0</span></span>', n: 'Gleichungs&shy;system', ins: '\\left\\{\\begin{aligned}#?&=#?\\\\#?&=#?\\end{aligned}\\right.'},
+    {g: '<span class="mz br"><span><i>a</i>, <i>x</i>&gt;0</span><span><i>b</i>, <i>x</i>≤0</span></span>', n: 'Fallunter&shy;scheidung', ins: '\\begin{cases}#?&#?\\\\#?&#?\\end{cases}'},
+    {g: '<span class="mx">(<span class="mz c"><span><i>a</i> <i>b</i></span><span><i>c</i> <i>d</i></span></span>)</span>', n: 'Matrix', ins: '\\begin{pmatrix}#?&#?\\\\#?&#?\\end{pmatrix}'},
+    {g: '<span class="mx">(<span class="mz c"><span><i>x</i></span><span><i>y</i></span><span><i>z</i></span></span>)</span>', n: 'Spalten&shy;vektor', ins: '\\begin{pmatrix}#?\\\\#?\\\\#?\\end{pmatrix}'},
+    {g: '<span class="mx">|<span class="mz c"><span><i>a</i> <i>b</i></span><span><i>c</i> <i>d</i></span></span>|</span>', n: 'Determi&shy;nante', ins: '\\begin{vmatrix}#?&#?\\\\#?&#?\\end{vmatrix}'},
+    {g: '<span class="op">+ Zeile</span>', n: 'Zeile dazu', cmd: 'addRowAfter'},
+    {g: '<span class="op">+ Spalte</span>', n: 'Spalte dazu', cmd: 'addColumnAfter'},
+    {g: '<span class="op">− Zeile</span>', n: 'Zeile weg', cmd: 'removeRow'},
+    {g: '<span class="op">− Spalte</span>', n: 'Spalte weg', cmd: 'removeColumn'},
     {g: '∑', n: 'Summe', ins: '\\sum_{#?}^{#?}#?'},
     {g: '∏', n: 'Produkt', ins: '\\prod_{#?}^{#?}#?'},
     {g: '∫', n: 'Integral', ins: '\\int_{#?}^{#?}#?\\,\\mathrm{d}#?'},
@@ -224,6 +246,8 @@ const TOOLS = {
     {g: '<i>x̄</i>', n: 'Querstrich', ins: '\\overline{#@}'},
     {g: '<i>x̂</i>', n: 'Dach', ins: '\\hat{#@}'},
     {g: '<i>ẋ</i>', n: 'Punkt', ins: '\\dot{#@}'},
+    {g: '<i>ẍ</i>', n: 'Zwei Punkte', ins: '\\ddot{#@}'},
+    {g: '<i>x̃</i>', n: 'Tilde', ins: '\\tilde{#@}'},
     {g: '<b>A</b>', n: 'Fett (Vektor)', ins: '\\mathbf{#@}'},
     {g: '<span style="font-size:.6em">sin</span>', n: 'Sinus', ins: '\\sin '},
     {g: '<span style="font-size:.6em">cos</span>', n: 'Kosinus', ins: '\\cos '},
@@ -238,13 +262,23 @@ const TOOLS = {
     ['<span class="sl lb"><i>λ</i><span></span></span>','\\lambdabar ','λ, Strich waagerecht'],['<i>ƛ</i>','\\lambdaslash ','λ, Strich schräg'],['∂','\\partial '],['∇','\\nabla '],['∞','\\infty '],['±','\\pm '],['∓','\\mp '],
     ['·','\\cdot '],['×','\\times '],['=','='],['≈','\\approx '],['≠','\\ne '],['≡','\\equiv '],['∼','\\sim '],['∝','\\propto '],
     ['<','<'],['>','>'],['≤','\\le '],['≥','\\ge '],['≪','\\ll '],['≫','\\gg '],['→','\\to '],['⇒','\\Rightarrow '],['⇔','\\Leftrightarrow '],
-    ['∈','\\in '],['°','^{\\circ}'],['′',"'"],['∗','^{\\ast}'],['⋯','\\cdots '],['…','\\ldots '],['⊥','\\perp '],['∥','\\parallel '],['Å','\\mathrm{Å}']
-  ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true}))
+    ['∈','\\in '],['°','^{\\circ}'],['′',"'"],['∗','^{\\ast}'],['⋯','\\cdots '],['…','\\ldots '],['⊥','\\perp '],['∥','\\parallel '],['Å','\\mathrm{Å}'],
+    ['†','^{\\dagger}'],['⊗','\\otimes '],['∀','\\forall '],['∃','\\exists '],['∉','\\notin '],['⊂','\\subset '],['∪','\\cup '],['∩','\\cap '],['←','\\leftarrow '],['↔','\\leftrightarrow ']
+  ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true})),
+  // Einheiten stehen aufrecht, damit m oder s nicht wie Variablen aussehen; direkt nach einer Zahl kommt ein kleiner Abstand dazu
+  einheiten: [
+    ['·', '\\cdot '], ['/', '/'], ['⁻¹', '^{-1}'], ['²', '^{2}'], ['³', '^{3}'],
+    ...'m s kg g N J W V A T Hz Pa C K mol eV Wb F H cm mm nm km ms ns rad'.split(' ').map(u => [u, '\\mathrm{' + u + '}']),
+    ['Ω', '\\Omega '], ['μm', '\\upmu\\mathrm{m}'], ['μs', '\\upmu\\mathrm{s}'], ['μ', '\\upmu '], ['°C', '^{\\circ}\\mathrm{C}'], ['Å', '\\mathrm{Å}']
+  ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true, unit: true}))
 };
 
 const ADDIN = /*@@ADDIN@@*/false;
+// Darstellung: sci = wissenschaftlich (große Brüche), kom = kompakt (kleine Brüche wie in LaTeX im Fließtext), lin = einzeilig
+const MODES = ['sci', 'kom', 'lin'];
 let mf, mode = 'sci', font = 'stix2', sizePt = 12, zoom = ADDIN ? 125 : 200;
 try { font = localStorage.getItem('fe-font') || font; mode = localStorage.getItem('fe-mode') || mode; } catch (e) {}
+if (!MODES.includes(mode)) mode = 'sci';
 
 /* ---------- LaTeX transformation: scientific vs. one-line ---------- */
 function parse(s) {
@@ -367,10 +401,10 @@ function frameDoc(fontId) {
   p.txt{line-height:1.5;margin:0;max-width:60ch}
   mjx-container{color:#111}
   .wait{color:#888;font:14px Arial,sans-serif}
-  body.sci .only-lin,body.lin .only-sci{display:none}
+  body.sci .only-lin,body.lin .only-sci,body.kom .only-sci{display:none}
   </style>
   <script>
-  window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}'}},
+  window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}',fonts:'${MJFONTS}'}},
    tex:{packages:{'[+]':['upgreek','enclose']},macros:{bm:['\\\\boldsymbol{#1}',1],lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
    output:{font:'mathjax-${fontId}',linebreaks:{inline:false}},
    svg:{fontCache:'local'},
@@ -418,6 +452,13 @@ function frameDoc(fontId) {
   </div></body></html>`;
 }
 const frame = document.getElementById('out');
+// Formel als SVG-Bild für Listen wie „Meine Formeln“ (nutzt das MathJax der Vorschau)
+async function texToSvg(tex) {
+  for (let i = 0; i < 100; i++) { try { if (frame.contentWindow.__mjReady) break; } catch (e) {} await new Promise(r => setTimeout(r, 100)); }
+  const node = await frame.contentWindow.MathJax.tex2svgPromise(render(tex, 'kom', false), {display: false});
+  const svg = node.querySelector('svg');
+  return svg ? svg.outerHTML : '';
+}
 let frameFont = null, frameReady = false;
 window.addEventListener('message', e => { if (e.data && e.data.fe === 'h') frame.style.height = Math.max(120, e.data.h + 8) + 'px'; });
 // Rohtext-Modus (nach Tippen von \\) verlassen und versehentlich als Text gelandete Befehle reparieren
@@ -434,9 +475,7 @@ function show() {
   leaveLatex();
   const tex = mf ? mf.getValue('latex') : '';
   const disp = render(tex || '\\square', mode, true);
-  const inl = render(tex || '\\square', 'lin', false) ;
-  const inlSci = render(tex || '\\square', 'sci', false);
-  const inline = mode === 'lin' ? inl : inlSci;
+  const inline = render(tex || '\\square', mode, false);
   document.getElementById('src').textContent = disp;
   if (frameFont !== font) {
     frameFont = font;
@@ -538,7 +577,7 @@ function findMeta(html, text) {
 }
 function loadMeta(m) {
   const msg = document.getElementById('pastemsg');
-  if (m.mode === 'sci' || m.mode === 'lin') { mode = m.mode; try { localStorage.setItem('fe-mode', mode); } catch (e) {} }
+  if (MODES.includes(m.mode)) { mode = m.mode; try { localStorage.setItem('fe-mode', mode); } catch (e) {} }
   if (FONTS.some(f => f.id === m.font)) { font = m.font; try { localStorage.setItem('fe-font', font); } catch (e) {} }
   if (m.pt) sizePt = +m.pt;
   syncSeg();
@@ -577,19 +616,36 @@ document.getElementById('fromword').addEventListener('click', async () => {
 });
 
 /* ---------- UI ---------- */
+// Ein Baustein: entweder Text einsetzen oder einen Befehl ausführen (Zeile/Spalte in Matrizen)
+function useTool(t) {
+  leaveLatex();
+  mf.focus();
+  let before = '', empty = true;
+  try { before = mf.getValue(0, mf.position, 'latex'); empty = mf.selectionIsCollapsed; } catch (e) {}
+  const wrap = t.ins && t.ins.match(/^\\(mathrm|mathbf)\{#@\}$/);
+  if (t.cmd) { mf.executeCommand(t.cmd); show(); }
+  // Ohne Markierung gilt „Normaler Text“ bzw. „Fett“ für die nächsten Zeichen (sonst blieben sie kursiv)
+  else if (wrap && empty) mf.applyStyle({variantStyle: wrap[1] === 'mathrm' ? 'up' : 'bold'});
+  else mf.executeCommand(['insert', (t.unit && /[0-9]$/.test(before) ? '\\,' : '') + t.ins, {selectionMode: 'placeholder', format: 'latex'}]);
+  mf.focus(); setTimeout(() => mf.focus(), 0);
+  document.dispatchEvent(new CustomEvent('fe-tool', {detail: t}));
+}
 function buildTools(tab) {
   const box = document.getElementById('tools');
   box.className = 'tools' + (tab === 'aufbau' ? '' : ' sym');
+  if (!TOOLS[tab]) return;
   box.innerHTML = '';
   TOOLS[tab].forEach(t => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'tool';
     b.innerHTML = '<span class="g"><span class="w">' + t.g + '</span></span>' + (t.n ? '<span class="n">' + t.n + '</span>' : '');
     if (!t.n) b.setAttribute('aria-label', t.g);
-    b.addEventListener('click', () => { leaveLatex(); mf.executeCommand(['insert', t.ins, {selectionMode: 'placeholder', format: 'latex'}]); mf.focus(); });
+    b.addEventListener('mousedown', e => e.preventDefault());   // die Eingabe behält den Cursor
+    b.addEventListener('click', () => useTool(t));
     box.appendChild(b);
   });
 }
+document.querySelectorAll('.tab').forEach(tb => tb.addEventListener('mousedown', e => e.preventDefault()));
 document.querySelectorAll('.tab').forEach(tb => tb.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === tb));
   buildTools(tb.dataset.tab);
@@ -634,10 +690,19 @@ function init() {
     mf.macros = Object.assign({}, mf.macros, {
       lambdaslash: {def: 'ƛ', captureSelection: true, expand: false},
       lambdabar: {def: '\\mathrlap{\\mkern4mu\\raisebox{0.52em}{\\rule{0.3em}{0.05em}}}\\lambda', captureSelection: true, expand: false},
-      uppi: {def: '\\pi', captureSelection: true, expand: false}
+      uppi: {def: '\\pi', captureSelection: true, expand: false},
+      upmu: {def: '\\mathrm{μ}', captureSelection: true, expand: false}
     });
     // Im Add-in startet der Editor leer; die Web-Fassung zeigt ein Beispiel
     mf.setValue(ADDIN ? '' : (SAMPLES.length > 1 ? SAMPLES[1].tex : 'E=mc^2'), {silenceNotifications: true});
+    // Link aus „Problem melden“: editor.html#f=… zeigt genau die gemeldete Formel
+    const h = location.hash.match(/^#f=([A-Za-z0-9_-]+)/);
+    if (h && !ADDIN) {
+      try {
+        const b = atob(h[1].replace(/-/g, '+').replace(/_/g, '/'));
+        loadMeta(JSON.parse(new TextDecoder().decode(Uint8Array.from(b, c => c.charCodeAt(0)))));
+      } catch (e) {}
+    }
     show();
   };
   if (mf.isConnected && mf.getValue) { try { setup(); } catch (e) { mf.addEventListener('mount', setup, {once: true}); } }
@@ -662,7 +727,8 @@ function init() {
   mf.addEventListener('input', () => { clearTimeout(window.__t); window.__t = setTimeout(show, 250); });
   document.getElementById('undo').onclick = () => { mf.executeCommand('undo'); show(); };
   document.getElementById('redo').onclick = () => { mf.executeCommand('redo'); show(); };
-  document.getElementById('clear').onclick = () => { mf.setValue(''); show(); mf.focus(); };
+  // Neue Formel: auch Fett, Aufrecht und Farbe für die nächsten Zeichen zurücksetzen
+  document.getElementById('clear').onclick = () => { mf.setValue(''); mf.focus(); try { mf.applyStyle({variantStyle: '', color: 'none'}); } catch (e) {} show(); setTimeout(() => mf.focus(), 0); };
   syncSeg(); buildTools('aufbau');
 }
 if (window.MathLive) init(); else window.addEventListener('load', init);

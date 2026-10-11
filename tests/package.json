@@ -1,0 +1,13 @@
+{
+  "name": "formeleditor-pruefung",
+  "private": true,
+  "type": "module",
+  "description": "Prüflauf: setzt Formeln mit dem echten Editor und vergleicht mit dem letzten guten Stand",
+  "scripts": {
+    "pruefen": "node pruefen.mjs"
+  },
+  "devDependencies": {
+    "jszip": "3.10.1",
+    "playwright": "1.56.1"
+  }
+}

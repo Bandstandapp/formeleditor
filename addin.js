@@ -63,12 +63,56 @@
     const empty = !mf.getValue('latex').trim();
     const st = saved === null ? (empty ? '' : 'changed') : (snap() === saved ? 'saved' : 'changed');
     if (mf.dataset.state !== st) { if (st) mf.dataset.state = st; else delete mf.dataset.state; }
+    // Wer eine neue Formel beginnt, statt den alten Entwurf zu wählen, verwirft ihn
+    if (draftOffer && st === 'changed' && saved === null && !adoptNext && mf.getValue('latex').trim()) closeDraft();
+    saveDraft(st);
     cancelBtn.disabled = st !== 'changed';
     // Unveränderte Formel aus dem Dokument: Der Knopf übernimmt sie nur (alte Formeln danach im neuen Format)
     const label = !current ? 'In Word einfügen' : st === 'saved' ? 'Ohne Änderung übernehmen' : 'Formel in Word ersetzen';
     if (insertBtn.textContent !== label) insertBtn.textContent = insertBtn2.textContent = label;
   }
   setInterval(updateFrame, 300);
+
+  // Entwurf: Was noch nicht in Word ist, wird laufend gesichert. Schließt sich Word vorher (Absturz,
+  // Seitenleiste zu, Aktualisieren), bietet der Editor die Formel beim nächsten Start wieder an.
+  const DRAFT = 'fe-draft';
+  let draftOffer = null, lastDraft = null, adoptNext = false;
+  try { draftOffer = JSON.parse(localStorage.getItem(DRAFT) || 'null'); } catch (e) {}
+  if (!draftOffer || typeof draftOffer.tex !== 'string' || !draftOffer.tex.trim()) draftOffer = null;
+  function saveDraft(st) {
+    if (draftOffer) return;                 // erst entscheiden lassen, sonst wäre der alte Entwurf weg
+    const d = st === 'changed' ? JSON.stringify({tex: mf.getValue('latex'), mode, font, pt: sizePt, edit: !!current, t: Date.now()}) : '';
+    if (d === lastDraft) return;
+    lastDraft = d;
+    try { if (d) localStorage.setItem(DRAFT, d); else localStorage.removeItem(DRAFT); } catch (e) {}
+  }
+  const draftBox = document.createElement('div');
+  draftBox.className = 'fe-draft'; draftBox.hidden = true; draftBox.setAttribute('role', 'status');
+  draftBox.innerHTML = '<p><b>Diese Formel war noch nicht in Word:</b></p><div class="fe-draft-f"></div>' +
+    '<div class="row"><button class="btn" type="button" data-a="ja">Wiederherstellen</button><button class="btn" type="button" data-a="nein">Verwerfen</button></div>';
+  $('mfwrap').before(draftBox);
+  function closeDraft() { draftOffer = null; draftBox.hidden = true; lastDraft = null; }
+  function offerDraft() {
+    if (!draftOffer) return;
+    const f = draftBox.querySelector('.fe-draft-f');
+    f.textContent = '';
+    texToSvg(draftOffer.tex).then(h => { f.innerHTML = h; }).catch(() => { f.textContent = draftOffer.tex; });
+    draftBox.hidden = false;
+  }
+  draftBox.addEventListener('click', e => {
+    const a = e.target.closest('button') && e.target.closest('button').dataset.a;
+    if (!a) return;
+    const d = draftOffer;
+    closeDraft();
+    if (a === 'nein') { try { localStorage.removeItem(DRAFT); } catch (err) {} return; }
+    setEditing(null); saved = savedState = null;
+    loadMeta(d);
+    adoptNext = !!d.edit;
+    say(pasteMsg, d.edit
+      ? 'Formel wiederhergestellt. Soll sie eine Formel im Dokument ersetzen, diese jetzt im Dokument anklicken. Die Eingabe bleibt dabei erhalten.'
+      : 'Formel wiederhergestellt. Mit „In Word einfügen“ kommt sie an die Stelle des Cursors.', true);
+    updateFrame();
+  });
 
   function setEditing(meta) {
     current = meta;
@@ -77,7 +121,8 @@
   }
 
   // Ein Absatz mit einem einzigen Bild; Word übernimmt es beim Einfügen in die laufende Zeile.
-  function ooxml(r, meta) {
+  // num: Gleichungsnummer wie „4.13“; sie steht rechtsbündig am Rand (absoluter Tabulator, ohne Tabstopps)
+  function ooxml(r, meta, num) {
     const emu = pt => Math.round(pt * 12700);
     const cx = emu(r.wpt), cy = emu(r.hpt);
     const png = r.dataUrl.split(',')[1];
@@ -106,7 +151,9 @@
       '<asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="rIdFSvg"/></a:ext></a:extLst></a:blip>' +
       '<a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
       '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
-      '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:body></w:document></pkg:xmlData></pkg:part>' +
+      '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>' +
+      (num ? '<w:r><w:ptab w:relativeTo="margin" w:alignment="right" w:leader="none"/><w:t xml:space="preserve">(' + xmlEsc(num) + ')</w:t></w:r>' : '') +
+      '</w:p></w:body></w:document></pkg:xmlData></pkg:part>' +
       '<pkg:part pkg:name="/word/media/formel.png" pkg:contentType="image/png" pkg:compression="store"><pkg:binaryData>' + png + '</pkg:binaryData></pkg:part>' +
       '<pkg:part pkg:name="/word/media/formel.svg" pkg:contentType="image/svg+xml" pkg:compression="store"><pkg:binaryData>' + svg + '</pkg:binaryData></pkg:part>' +
       '</pkg:package>';
@@ -177,7 +224,15 @@
     try {
       await Word.run(async ctx => {
         const f = await selectedFormula(ctx);
-        if (f) {
+        if (f && adoptNext) {
+          // Wiederhergestellter Entwurf: die angeklickte Formel wird sein Ziel, die Eingabe bleibt
+          adoptNext = false;
+          setEditing(f.meta);
+          saved = JSON.stringify([f.meta.tex.replace(/\s+/g, ''), f.meta.mode, f.meta.font, f.meta.pt]);
+          savedState = f.meta;
+          updateFrame();
+          say(pasteMsg, 'Die angeklickte Formel wird durch die wiederhergestellte ersetzt, sobald „Formel in Word ersetzen“ gedrückt wird. „Abbrechen“ zeigt wieder die Formel aus dem Dokument.', true);
+        } else if (f) {
           loadMeta(f.meta);
           setEditing(f.meta);
           markSaved();
@@ -201,7 +256,7 @@
 
   const sayStatus = (text, ok) => { say(status, text, ok); say(status2, text, ok); };
 
-  window.FeWord = {ooxml};   // für bulk.js (Formeln im Dokument neu formatieren)
+  window.FeWord = {ooxml, editing: () => !!current};   // für bulk.js und nummern.js
 
   async function insertIntoWord() {
     const src = mf ? mf.getValue('latex') : '';
@@ -213,18 +268,22 @@
       const pad = current && current.pad ? current.pad : 0;   // Luft um umgewandelte Formeln im Fließtext beibehalten
       const meta = 'FORMEL:' + JSON.stringify(pad ? {tex: src, mode, font, pt: sizePt, pad} : {tex: src, mode, font, pt: sizePt});
       const r = await frame.contentWindow.__png(sizePt, 0, pad);
-      const xml = ooxml(r, meta);
-      let replaced = false;
+      // Neue abgesetzte Formel auf Wunsch mit Gleichungsnummer (nummern.js)
+      const num = !current && window.FeNummer ? FeNummer.wanted() : null;
+      const xml = ooxml(r, meta, num);
+      let replaced = false, numText = '';
       await Word.run(async ctx => {
         const f = current ? await selectedFormula(ctx) : null;
         if (f && f.kind === 'new') { f.pic.getRange('Whole').insertOoxml(xml, 'Replace'); replaced = true; }
         else if (f) { f.range.insertOoxml(xml, 'Replace'); replaced = true; }
+        else if (num) { const at = await FeNummer.beforeInsert(ctx, num); at.insertOoxml(xml, 'Replace'); }
         else ctx.document.getSelection().insertOoxml(xml, 'Replace');
         await ctx.sync();
       });
+      if (num) numText = FeNummer.done(num);
       setEditing(null);
       markSaved();
-      sayStatus(replaced ? 'Formel im Dokument ersetzt.' : 'Formel eingefügt.', true);
+      sayStatus((replaced ? 'Formel im Dokument ersetzt.' : num ? 'Formel mit Nummer (' + num + ') eingefügt.' : 'Formel eingefügt.') + (numText ? ' ' + numText : ''), true);
     } catch (e) {
       sayStatus('Einfügen hat nicht geklappt: ' + (e && e.message ? e.message : e));
     } finally {
@@ -242,6 +301,7 @@
   Office.onReady(info => {
     if (info.host !== Office.HostType.Word) { say(status, 'Dieses Add-in läuft nur in Word.'); return; }
     wordReady = true;
+    offerDraft();
     Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, onSelectionChanged);
     checkSelection(false);
   });

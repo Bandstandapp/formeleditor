@@ -190,7 +190,7 @@
       progress(k + 1, jobs.length);
       let tex = null, why = null, mode, pt, font, pad;
       if (j.kind === 'new') {
-        tex = j.meta.tex; mode = j.meta.mode === 'lin' ? 'lin' : 'sci'; pad = j.meta.pad || 0;
+        tex = j.meta.tex; mode = ['lin', 'kom'].includes(j.meta.mode) ? j.meta.mode : 'sci'; pad = j.meta.pad || 0;
         font = opts.applyFont ? stdFont : (j.meta.font || stdFont);
         pt = opts.applyPt && opts.pt ? +opts.pt : (+j.meta.pt || j.textPt);
       } else {

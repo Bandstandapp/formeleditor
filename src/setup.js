@@ -97,7 +97,7 @@
     $('fe-rem').textContent = remote.version + (remote.datum ? ' vom ' + datum(remote.datum) : '');
     if (newer(remote.version, local.version)) {
       const text = 'Es gibt eine neue Version ' + remote.version + '.' + (remote.neu ? ' Neu: ' + remote.neu : '');
-      msg.textContent = text + ' Jetzt aktualisieren? Eine gerade eingegebene Formel geht dabei verloren.';
+      msg.textContent = text + ' Jetzt aktualisieren? Eine gerade eingegebene Formel bietet der Editor danach wieder an.';
       $('fe-ask').hidden = false;
       news.innerHTML = '';
       const p = document.createElement('span'); p.textContent = 'Neue Version ' + remote.version + ' verfügbar.';
