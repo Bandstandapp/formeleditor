@@ -49,10 +49,11 @@ body.addin #fonts small { display: none; }
             '\n<script>window.FE_VERSION = ' + json.dumps(ver, ensure_ascii=False) + ';</script>'
             '\n<script src="eqn3.js?v=' + v + '"></script>\n<script src="convert.js?v=' + v + '"></script>'
             '\n<script src="addin.js?v=' + v + '"></script>\n<script src="layout.js?v=' + v + '"></script>'
+            '\n<script src="history.js?v=' + v + '"></script>'
             '\n<script src="bulk.js?v=' + v + '"></script>'
             '\n<script src="setup.js?v=' + v + '"></script>\n</body>\n</html>\n')
     open(os.path.join(REPO, 'taskpane.html'), 'w').write(page)
-    for f in ('addin.js', 'eqn3.js', 'convert.js', 'bulk.js', 'layout.js', 'setup.js', 'version.json'):
+    for f in ('addin.js', 'eqn3.js', 'convert.js', 'bulk.js', 'history.js', 'layout.js', 'setup.js', 'version.json'):
         open(os.path.join(REPO, f), 'w').write(open(f).read())
     print('taskpane', len(page))
     open(os.path.join(REPO, 'editor.html'), 'w').write('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n</head>\n<body>\n' + web + '\n</body>\n</html>\n')
