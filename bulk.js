@@ -128,7 +128,7 @@ section[aria-label="Dokument"] .btn:not(.primary) { padding: 8px 10px; font-size
     if (jszip) return jszip;
     return (jszip = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.src = new URL('vendor/jszip/jszip.min.js', location.href).href;
       s.onload = () => res(window.JSZip);
       s.onerror = () => { jszip = null; rej(new Error('Hilfsprogramm zum Entpacken lädt nicht. Bitte Internet prüfen.')); };
       document.head.appendChild(s);
@@ -319,7 +319,7 @@ section[aria-label="Dokument"] .btn:not(.primary) { padding: 8px 10px; font-size
   }
   async function formatAt(ctx, it) {
     const m = it.meta;
-    const meta = {tex: m.tex, mode: m.mode === 'lin' ? 'lin' : 'sci', font: stdFont.value, pt: +stdSize.value};
+    const meta = {tex: m.tex, mode: ['lin', 'kom'].includes(m.mode) ? m.mode : 'sci', font: stdFont.value, pt: +stdSize.value};
     if (m.pad) meta.pad = m.pad;
     const r = await renderFormula(meta.tex, meta.mode, meta.pt, meta.pad || 0, meta.font, 600);
     it.p.getRange('Whole').insertOoxml(FeWord.ooxml(r, 'FORMEL:' + JSON.stringify(meta)), 'Replace');

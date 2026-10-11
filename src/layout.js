@@ -61,7 +61,8 @@ body.addin .fe-insrow { display: flex; flex-direction: column-reverse; gap: 6px;
 body.addin .fe-insrow .fe-cancel { width: 100%; padding: 7px 10px; font-size: .95rem; }
 body.addin .fe-insrow .fe-cancel:disabled { opacity: .45; cursor: default; }
 body.addin .hint:empty { display: none; }
-body.addin #mode { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+body.addin #mode { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1fr); gap: 5px; }
+body.addin #mode button { font-size: .9rem; padding: 8px 2px; min-width: 0; }
 body.addin #mode button { text-align: center; padding: 8px 4px; }
 body.addin #mode small { display: none; }
 body.addin .zoomrow { margin: 0; gap: 8px; font-weight: 400; font-size: .95rem; }
@@ -69,7 +70,12 @@ body.addin .pickrow { display: grid; grid-template-columns: minmax(0, 1.6fr) min
 body.addin .pick { display: grid; gap: 2px; font-size: .9rem; color: var(--muted); }
 body.addin select { font: inherit; font-size: 1rem; color: var(--fg); background: var(--surface); border: 2px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
 body.addin #fonts, body.addin #sizes, body.addin section[aria-label="Darstellung"] { display: none !important; }
-body.addin .paper iframe { min-height: 0; }`;
+body.addin .paper iframe { min-height: 0; }
+.fe-draft { border: 2px solid #e07b00; border-radius: var(--r); padding: 8px 10px; display: grid; gap: 6px; background: var(--surface); }
+.fe-draft[hidden] { display: none !important; }
+.fe-draft p { margin: 0; font-size: .95rem; }
+.fe-draft .fe-draft-f { font-size: 1.3rem; overflow-x: auto; }
+.fe-draft .row .btn { padding: 6px 10px; font-size: .95rem; }`;
   document.head.appendChild(css);
 
   // Überschrift mit Info-Symbol

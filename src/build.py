@@ -15,6 +15,14 @@ s = s.replace('/*@@SAMPLES@@*/', json.dumps((json.load(open(SAMPLES)) if os.path
 web = s.replace('/*@@ADDIN@@*/false', 'false')
 open('formeleditor.html', 'w').write(web); print('artifact', len(s))
 if REPO:
+    # Fremde Server nur in der Artefakt-Fassung; im Repo liegt alles unter vendor/
+    s = s.replace('/*@@LOCAL@@*/false', 'true')
+    s = s.replace('<script src="https://cdn.jsdelivr.net/npm/mathlive@0.111.0/mathlive.min.js"></script>', '<script src="vendor/mathlive/mathlive.min.js"></script>')
+    gf = [l for l in s.split('\n') if 'fonts.googleapis.com' in l]
+    assert len(gf) == 2, gf
+    s = s.replace(gf[0] + '\n', '').replace(gf[1], '<link rel="stylesheet" href="vendor/schrift/atkinson.css">')
+    assert 'cdn.jsdelivr' not in s.replace("'https://cdn.jsdelivr.net/npm/mathjax@4.1.3'", '').replace("'https://cdn.jsdelivr.net/npm/@mathjax'", '')
+    web = s.replace('/*@@ADDIN@@*/false', 'false')
     body = s.replace('/*@@ADDIN@@*/false', 'true')
     title = '<title>Formeleditor für Papa</title>'
     assert title in body
@@ -40,6 +48,8 @@ body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>'''
     ver = json.load(open('version.json'))
+    # Reihenfolge zählt: layout ordnet die Kacheln, die späteren Dateien hängen sich dort ein
+    SCRIPTS = ('addin.js', 'layout.js', 'bausteine.js', 'history.js', 'bulk.js', 'nummern.js', 'setup.js', 'melden.js')
     v = ver['version']
     page = ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
@@ -48,12 +58,9 @@ body.addin #fonts small { display: none; }
             '</head>\n<body class="addin">\n' + body + css +
             '\n<script>window.FE_VERSION = ' + json.dumps(ver, ensure_ascii=False) + ';</script>'
             '\n<script src="eqn3.js?v=' + v + '"></script>\n<script src="convert.js?v=' + v + '"></script>'
-            '\n<script src="addin.js?v=' + v + '"></script>\n<script src="layout.js?v=' + v + '"></script>'
-            '\n<script src="history.js?v=' + v + '"></script>'
-            '\n<script src="bulk.js?v=' + v + '"></script>'
-            '\n<script src="setup.js?v=' + v + '"></script>\n</body>\n</html>\n')
+            + ''.join('\n<script src="' + f + '?v=' + v + '"></script>' for f in SCRIPTS) + '\n</body>\n</html>\n')
     open(os.path.join(REPO, 'taskpane.html'), 'w').write(page)
-    for f in ('addin.js', 'eqn3.js', 'convert.js', 'bulk.js', 'history.js', 'layout.js', 'setup.js', 'version.json'):
+    for f in ('eqn3.js', 'convert.js') + SCRIPTS + ('version.json',):
         open(os.path.join(REPO, f), 'w').write(open(f).read())
     print('taskpane', len(page))
     open(os.path.join(REPO, 'editor.html'), 'w').write('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n</head>\n<body>\n' + web + '\n</body>\n</html>\n')

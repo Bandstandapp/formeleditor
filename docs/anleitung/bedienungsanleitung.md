@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.6.2
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.0
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -25,6 +25,8 @@ Caption: Der Editor nach dem Öffnen, die Eingabe ist leer
 
 Unter **Aufbau** liegen Brüche, Wurzeln, Klammern, Hochzahlen, Summen und Integrale. Ein Klick setzt den Baustein an der Stelle des blinkenden Strichs ein. Leere Felder, etwa Zähler und Nenner, erscheinen als kleine Kästchen und werden der Reihe nach ausgefüllt.
 
+Für längere Formeln gibt es **Mehrzeilig** (Gleichungen untereinander, am Gleichheitszeichen ausgerichtet), **Gleichungssystem**, **Fallunterscheidung**, **Matrix**, **Spaltenvektor** und **Determinante**. Mit **Zeile dazu**, **Spalte dazu**, **Zeile weg** und **Spalte weg** passt man sie an. Dazu den Cursor in die Zeile oder Spalte setzen, um die es geht.
+
 Unter **Griechisch** stehen alle griechischen Buchstaben, klein und groß.
 
 ![](img/02-griechisch.png)
@@ -34,6 +36,27 @@ Unter **Zeichen** finden sich Relationszeichen, Pfeile und Sonderzeichen. Ganz v
 
 ![](img/03-zeichen.png)
 Caption: Sonderzeichen, vorn die Varianten von h und λ
+
+Unter **Einheiten** stehen die gebräuchlichen Einheiten. Sie erscheinen aufrecht, wie es sich gehört, und hinter einer Zahl setzt der Editor von selbst den kleinen Abstand: Man tippt 9,81 und klickt dann auf m, auf ·, auf s und auf ⁻¹ … oder ².
+
+![](img/18-einheiten.png)
+Caption: Einheiten zum Anklicken
+
+### Suchen und zuletzt benutzt
+
+Über den Reitern liegt ein Suchfeld. Dort tippt man einen Namen, etwa „Wurzel“, „Integral“, „Planck“, „Ohm“ oder „alpha“, und sieht sofort die passenden Bausteine. Das kleine × leert das Suchfeld wieder.
+
+![](img/19-suche.png)
+Caption: Die Suche nach „planck“ findet beide h mit Querstrich
+
+Unter den Reitern erscheint die Zeile **Zuletzt** mit den zuletzt benutzten Bausteinen.
+
+### Meine Formeln
+
+Häufig gebrauchte Formeln lassen sich aufheben. Die Formel in die Eingabe schreiben, den Reiter **Meine Formeln** öffnen, einen Namen eintragen und auf **Speichern** klicken. Ist in der Eingabe etwas markiert, wird nur dieser Teil gespeichert. Ein Klick auf eine gespeicherte Formel setzt sie an der Stelle des Cursors in die Eingabe ein. Das × daneben löscht sie nach einer Rückfrage.
+
+![](img/20-meine.png)
+Caption: Zwei gespeicherte Formeln
 
 ### Mit der Tastatur
 
@@ -71,12 +94,13 @@ Caption: Die Farbauswahl hinter dem Knopf A
 Die Kachel **Ergebnis** zeigt die Formel so, wie sie gedruckt aussieht. Darunter wählt man das Aussehen:
 
 - **Wissenschaftlich** setzt Brüche übereinander, wie in Fachzeitschriften. Richtig für abgesetzte Gleichungen.
-- **Einzeilig** schreibt Brüche mit Schrägstrich, also hc/λ. So passt die Formel in eine Textzeile.
+- **Kompakt** setzt Brüche ebenfalls übereinander, aber kleiner und flacher. Richtig für Formeln mitten im Text, weil die Zeile dann kaum höher wird.
+- **Einzeilig** schreibt Brüche mit Schrägstrich, also hc/λ. So passt die Formel ganz flach in eine Textzeile.
 - **Vorschau vergrößern** ändert nur die Ansicht, nicht die Formel im Dokument.
 - **Schrift** und **Schriftgröße** gelten für die Formel im Dokument. Am besten dieselbe Größe wie der Text, meist 12 pt.
 
 ![](img/06-vorschau.png)
-Caption: Die Kachel Ergebnis mit Darstellung, Zoom, Schrift und Größe
+Caption: Die Kachel Vorschau, hier in der Darstellung Kompakt
 
 ![](img/07-einzeilig.png)
 Caption: Dieselbe Formel in einzeiliger Darstellung
@@ -86,7 +110,16 @@ So kommt die Formel ins Dokument:
 - Im Dokument an die Stelle klicken, an der die Formel stehen soll.
 - Auf **In Word einfügen** klicken.
 
-Für eine abgesetzte Gleichung schreibt man sie in einen eigenen Absatz. Die Gleichungsnummer, zum Beispiel (3.8), tippt man als normalen Text dahinter.
+### Mit Gleichungsnummer
+
+Bei **Wissenschaftlich** steht unter den Darstellungen das Kästchen **Gleichungsnummer**. Ist es angekreuzt, schlägt der Editor die nächste Nummer vor, zum Beispiel (4.13), und schaut dafür auf die Nummern davor und danach im Dokument. Die Nummer lässt sich im Feld ändern. **Vorschlag** holt den Vorschlag zurück.
+
+Beim Einfügen steht die Formel in einem eigenen Absatz und die Nummer rechtsbündig dahinter. Gibt es (4.13) schon und ist **Folgende Nummern weiterzählen** angekreuzt, macht der Editor aus der alten (4.13) eine (4.14), aus (4.14) eine (4.15) und so weiter, auch an allen Stellen im Text, die darauf verweisen.
+
+![](img/21-nummer.png)
+Caption: Mehrzeilige Formel mit Gleichungsnummer
+
+> Gut zu wissen. Die Nummer ist normaler Text in Word. Sie lässt sich dort auch von Hand ändern.
 
 Es gibt acht Schriften. STIX Two passt am besten zu Times New Roman. Termes ist ebenfalls Times-ähnlich, nur zarter. Computer Modern ist der klassische Look mathematischer Bücher. Pagella, Schola und Bonum sind Buchschriften. Fira und DejaVu sind Schriften ohne Serifen.
 
@@ -139,6 +172,11 @@ Caption: Die Übersicht nach dem Konvertieren
 ![](img/14-analyse.png)
 Caption: Analyse der Formeln im Dokument
 
+- **Gleichungsnummern prüfen:** zeigt für jedes Kapitel, ob Nummern doppelt vorkommen, fehlen oder durcheinander stehen, und ob der Text auf eine Nummer verweist, die es nicht gibt.
+
+![](img/22-pruefen.png)
+Caption: Prüfung der Gleichungsnummern
+
 - **Formeln suchen:** markiert passende Formeln türkis. Mit **Zurück** und **Weiter** springt man von Formel zu Formel, formatiert sie einzeln oder alle im Standard und entfernt am Ende die Markierungen.
 
 ![](img/15-suche.png)
@@ -151,12 +189,31 @@ Caption: Suchen, blättern und formatieren
 Unten im Editor stehen Name und Version. Das **Zahnrad** daneben öffnet die Einrichtung.
 
 ![](img/11-fusszeile.png)
-Caption: Die Fußzeile mit Version und Zahnrad
+Caption: Die Fußzeile mit Version, Problem melden und Zahnrad
 
-Die Einrichtung vergleicht die Version mit der neuesten. Gibt es eine neuere, erscheint beim Start oben ein blauer Hinweis. Mit **Ja, jetzt aktualisieren** holt sich der Editor die neue Version. Eine noch nicht eingefügte Formel geht dabei verloren. **Dokumentation herunterladen** öffnet diese Anleitung.
+Die Einrichtung vergleicht die Version mit der neuesten. Gibt es eine neuere, erscheint beim Start oben ein blauer Hinweis. Mit **Ja, jetzt aktualisieren** holt sich der Editor die neue Version. Eine noch nicht eingefügte Formel bietet er danach wieder an. **Dokumentation herunterladen** öffnet diese Anleitung.
 
 ![](img/12-einrichtung.png)
 Caption: Die Einrichtung mit Versionsprüfung
+
+### Eine Formel ist nicht verloren
+
+Der Editor merkt sich die Formel in der Eingabe laufend. Wird er geschlossen, bevor sie in Word steht, oder stürzt Word ab, zeigt er sie beim nächsten Öffnen oben an.
+
+![](img/23-entwurf.png)
+Caption: Eine noch nicht eingefügte Formel wird angeboten
+
+- **Wiederherstellen** holt sie in die Eingabe zurück. Gehörte sie zu einer Formel im Dokument, diese Formel einmal anklicken. Dann ersetzt der große Knopf genau sie.
+- **Verwerfen** lässt sie weg.
+
+### Problem melden
+
+Sieht eine Formel falsch aus oder klappt etwas nicht, unten auf **Problem melden** klicken. In das Feld kurz schreiben, was nicht stimmt. Beim ersten Mal die E-Mail-Adresse eintragen, an die die Meldung gehen soll. Der Editor merkt sie sich.
+
+**E-Mail vorbereiten** öffnet das E-Mail-Programm mit einer fertigen Nachricht. Darin stehen die Beschreibung, die Formel aus der Eingabe und die Version. Dann nur noch auf „Senden“ klicken. Öffnet sich nichts, **Text kopieren** drücken und den Text mit ⌘V in eine neue E-Mail einfügen.
+
+![](img/24-melden.png)
+Caption: Das Fenster Problem melden
 
 ### Wenn etwas nicht klappt
 
@@ -170,4 +227,4 @@ Caption: Die Einrichtung mit Versionsprüfung
 
 Caption: Kleine Hilfe bei Problemen
 
-Für die Formeln im Dokument braucht Word kein Internet. Nur der Editor lädt seine Schriften aus dem Netz. Den Alternativtext einer Formel bitte nicht von Hand ändern, denn darin merkt sich der Editor die Formel für spätere Änderungen.
+Für die Formeln im Dokument braucht Word kein Internet. Der Editor bringt alle Schriften selbst mit und braucht Internet nur, um sich beim Öffnen zu laden. Den Alternativtext einer Formel bitte nicht von Hand ändern, denn darin merkt sich der Editor die Formel für spätere Änderungen.
