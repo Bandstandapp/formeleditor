@@ -55,6 +55,9 @@
   wrap.prepend(bar);
   document.body.appendChild(dlg);
   const $ = id => dlg.querySelector('#' + id);
+  // Technischer Quelltext gehört nicht in die Hauptansicht
+  const tech = document.querySelector('details code#src');
+  if (tech) dlg.querySelector('.fe-box').insertBefore(tech.parentElement, dlg.querySelector('#fe-ask'));
   $('fe-loc').textContent = local.version + (local.datum ? ' vom ' + datum(local.datum) : '');
 
   let remote = null;
