@@ -237,9 +237,9 @@
     }
     indent(para);
   }
-  root.FeNummer = {wanted, beforeInsert, afterInsert, done};
+  root.FeNummer = {wanted, beforeInsert, afterInsert, afterReplace, done};
 
-  // Alle Gleichungsnummern im Dokument rechtsbündig mit demselben Abstand zum rechten Rand setzen.
+  // Formeln mit Nummer wie im Lineal setzen: Einzug links für die Formel, Einzug rechts für das Ende der Nummer.
   // Leerraum (Tabs, Leerzeichen) zwischen Formel und Nummer wird durch einen Tabulator am rechten Einzug ersetzt.
   const PTAB = '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage"><pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">' +
     '<pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships></pkg:xmlData></pkg:part>' +
@@ -247,6 +247,47 @@
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:ptab w:relativeTo="indent" w:alignment="right" w:leader="none"/></w:r></w:p></w:body></w:document>' +
     '</pkg:xmlData></pkg:part></pkg:package>';
   const blank = t => /^[\s\u00a0]*$/.test(t || '');
+  // Einen Absatz mit abgesetzter Formel wie im Lineal setzen; num: seine Nummer oder null. false, wenn die Nummer fehlt.
+  async function alignPara(ctx, p, num) {
+    const hits = num ? p.search('(' + num + ')', {matchCase: true}) : null;
+    const pics = p.inlinePictures;
+    const tabs = p.search('^t');
+    if (hits) hits.load('items');
+    pics.load('items'); tabs.load('items');
+    await ctx.sync();
+    if (num && !hits.items.length) return false;
+    if (num) {
+      const at = hits.items[hits.items.length - 1].getRange('Start');
+      // Am liebsten alles zwischen der letzten Formel und der Nummer, wenn dort nur Leerraum steht
+      let gap = null;
+      if (pics.items.length) {
+        const g = pics.items[pics.items.length - 1].getRange('End').expandTo(at);
+        g.load('text');
+        await ctx.sync();
+        if (blank(g.text)) gap = g;
+      }
+      // Sonst die Tabs unmittelbar vor der Nummer
+      if (!gap) {
+        const before = p.getRange('Start').expandTo(at);
+        before.load('text');
+        await ctx.sync();
+        const trail = (before.text.match(/[\t ]*$/) || [''])[0];
+        const k = (trail.match(/\t/g) || []).length;
+        if (k && tabs.items.length >= k) gap = tabs.items[tabs.items.length - k].expandTo(at);
+      }
+      if (gap) gap.insertOoxml(PTAB, 'Replace');
+      else at.insertOoxml(PTAB, 'Replace');
+    }
+    // Leerraum vor der ersten Formel entfernen, damit sie beim Einzug aus dem Lineal beginnt
+    if (pics.items.length) {
+      const lead = p.getRange('Start').expandTo(pics.items[0].getRange('Start'));
+      lead.load('text');
+      await ctx.sync();
+      if (lead.text && blank(lead.text)) lead.delete();
+    }
+    indent(p);
+    return true;
+  }
   async function alignAll() {
     let done = 0, skipped = [];
     await Word.run(async ctx => {
@@ -255,45 +296,23 @@
       await ctx.sync();
       const todo = ps.items.map(p => ({p, num: endNumber(p.text)})).filter(x => x.num);
       for (const {p, num} of todo) {
-        const hits = p.search('(' + num + ')', {matchCase: true});
-        const pics = p.inlinePictures;
-        const tabs = p.search('^t');
-        hits.load('items'); pics.load('items'); tabs.load('items');
-        await ctx.sync();
-        if (!hits.items.length) { skipped.push(num); continue; }
-        const at = hits.items[hits.items.length - 1].getRange('Start');
-        // Am liebsten alles zwischen der letzten Formel und der Nummer, wenn dort nur Leerraum steht
-        let gap = null;
-        if (pics.items.length) {
-          const g = pics.items[pics.items.length - 1].getRange('End').expandTo(at);
-          g.load('text');
-          await ctx.sync();
-          if (blank(g.text)) gap = g;
-        }
-        // Sonst die Tabs unmittelbar vor der Nummer
-        if (!gap) {
-          const before = p.getRange('Start').expandTo(at);
-          before.load('text');
-          await ctx.sync();
-          const trail = (before.text.match(/[\t ]*$/) || [''])[0];
-          const k = (trail.match(/\t/g) || []).length;
-          if (k && tabs.items.length >= k) gap = tabs.items[tabs.items.length - k].expandTo(at);
-        }
-        if (gap) gap.insertOoxml(PTAB, 'Replace');
-        else at.insertOoxml(PTAB, 'Replace');
-        // Leerraum vor der ersten Formel entfernen, damit sie beim Einzug aus dem Lineal beginnt
-        if (pics.items.length) {
-          const lead = p.getRange('Start').expandTo(pics.items[0].getRange('Start'));
-          lead.load('text');
-          await ctx.sync();
-          if (lead.text && blank(lead.text)) lead.delete();
-        }
-        indent(p);
-        done++;
+        if (await alignPara(ctx, p, num)) done++; else skipped.push(num);
       }
       await ctx.sync();
     });
     return {done, skipped};
+  }
+  // Nach dem Ersetzen einer geladenen Formel: nur wenn im Lineal etwas verschoben wurde und die Formel
+  // allein (mit oder ohne Nummer) in ihrem Absatz steht
+  async function afterReplace(ctx, range) {
+    if (!window.FeLineal || !FeLineal.visible() || !FeLineal.movedDuringEdit()) return;
+    const p = range.paragraphs.getFirst();
+    p.load('text');
+    await ctx.sync();
+    const num = endNumber(p.text);
+    const rest = num ? p.text.replace(/[\u0000-\u001f\ufffc]+$/g, '').replace(END, '') : p.text;
+    if (rest.replace(/[\s\ufffc]/g, '')) return;
+    await alignPara(ctx, p, num);
   }
   box.querySelector('#fe-num-align').addEventListener('click', async () => {
     if (!inWord()) { msg.textContent = 'Das geht nur, wenn der Editor in Word geöffnet ist.'; return; }

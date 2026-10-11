@@ -1,1 +1,1 @@
-{"version": "1.7.2", "datum": "2026-10-12", "neu": "Lineal in der Vorschau: Einzug der Formel und Position der Gleichungsnummer in cm, mit den Seitenrändern aus Word."}
+{"version": "1.7.3", "datum": "2026-10-12", "neu": "Das Lineal ist auch beim Ändern einer vorhandenen Formel zu sehen; wird ein Reiter verschoben, rückt die Formel beim Ersetzen dorthin."}

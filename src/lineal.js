@@ -25,7 +25,9 @@
 .fe-ruler-vals .sw { display: inline-block; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid currentColor; }
 .fe-ruler-vals .f .sw { color: var(--accent); }
 .fe-ruler-vals .n .sw { color: #c25e00; }
-.fe-ruler-vals .n.off { opacity: .45; }`;
+.fe-ruler-vals .n.off { opacity: .45; }
+.fe-ruler .fe-ruler-hint { margin: 0; font-size: .9rem; color: var(--muted); }
+.fe-ruler .fe-ruler-hint[hidden] { display: none; }`;
   document.head.appendChild(css);
 
   const box = document.createElement('div');
@@ -36,7 +38,8 @@
     '<button type="button" class="fe-mark" data-k="n" role="slider" aria-label="Gleichungsnummer endet bei (cm vom linken Rand)">' +
     '<svg width="16" height="14" viewBox="0 0 16 14"><path d="M8 0 L16 13 L0 13 Z" fill="#c25e00"/></svg></button></div>' +
     '<div class="fe-ruler-vals"><label class="f"><span class="sw"></span>Formel ab <input type="text" inputmode="decimal" data-k="f" aria-label="Formel ab, in cm"> cm</label>' +
-    '<label class="n"><span class="sw"></span>Nummer bis <input type="text" inputmode="decimal" data-k="n" aria-label="Nummer bis, in cm"> cm</label></div>';
+    '<label class="n"><span class="sw"></span>Nummer bis <input type="text" inputmode="decimal" data-k="n" aria-label="Nummer bis, in cm"> cm</label></div>' +
+    '<p class="fe-ruler-hint" hidden>Diese Formel bleibt beim Ersetzen an ihrer Stelle. Erst wenn ein Dreieck verschoben wird, rückt sie dorthin.</p>';
   paper.before(box);
   const bar = box.querySelector('.fe-ruler-bar'), scale = box.querySelector('svg.scale');
   const marks = {f: box.querySelector('.fe-mark[data-k="f"]'), n: box.querySelector('.fe-mark[data-k="n"]')};
@@ -85,7 +88,9 @@
       if (document.activeElement !== inputs[k]) inputs[k].value = fmt(v);
     }
   }
+  let rev = 0, editRev = 0, editing = false;            // rev zählt jede Verschiebung eines Reiters
   function set(k, v) {
+    rev++;
     if (k === 'f') pos.f = v;
     else pos.n = Math.abs(v - tw()) < 1e-6 ? null : v;   // ganz am rechten Rand: bleibt am Rand, auch bei anderen Seiten
     clamp(); draw();
@@ -131,11 +136,14 @@
     } catch (e) {}
   }
 
-  // Sichtbar bei neuen Formeln in wissenschaftlicher Darstellung (wie das Feld für die Gleichungsnummer)
+  // Sichtbar in wissenschaftlicher Darstellung, bei neuen und bei geladenen Formeln
   let shown = false;
+  const hint = box.querySelector('.fe-ruler-hint');
   setInterval(() => {
-    const show = mode === 'sci' && !FeWord.editing();
-    const on = !!(q('#fe-num-on') && q('#fe-num-on').checked);
+    const ed = FeWord.editing();
+    if (ed !== editing) { editing = ed; editRev = rev; hint.hidden = !ed; }
+    const show = mode === 'sci';
+    const on = ed || !!(q('#fe-num-on') && q('#fe-num-on').checked);   // geladene Formel: Nummer zählt, falls sie eine hat
     if (show !== shown) { shown = show; box.hidden = !show; if (show) { readPage(); requestAnimationFrame(draw); } }
     if (on !== numOn) { numOn = on; draw(); }
   }, 400);
@@ -149,6 +157,7 @@
   // Werte für Word in Punkt: Einzug links der Formel, Einzug rechts so, dass die Nummer bei „Nummer bis“ endet
   window.FeLineal = {
     visible: () => shown,
+    movedDuringEdit: () => editing && rev !== editRev,
     leftPt: () => pt(pos.f),
     rightPt: () => pt(Math.max(0, tw() - nVal())),
     text: () => 'Formel ab ' + fmt(pos.f) + ' cm, Nummer bis ' + fmt(nVal()) + ' cm',
