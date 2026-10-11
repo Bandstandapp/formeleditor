@@ -376,7 +376,7 @@ function frameDoc(fontId) {
   </style>
   <script>
   window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}'}},
-   tex:{packages:{'[+]':['upgreek','enclose']},macros:{lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
+   tex:{packages:{'[+]':['upgreek','enclose']},macros:{bm:['\\\\boldsymbol{#1}',1],lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
    output:{font:'mathjax-${fontId}',linebreaks:{inline:false}},
    svg:{fontCache:'local'},
    startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};
@@ -633,6 +633,7 @@ function init() {
   mf.id = 'mf';
   mf.mathVirtualKeyboardPolicy = 'manual';
   mf.smartFence = true;
+  mf.mathModeSpace = '\\,';            // Leertaste: schmaler Abstand, z. B. in 1.159 652 180 46
   document.getElementById('mfwrap').appendChild(mf);
   mf.setAttribute('aria-label', 'Formel eingeben');
   const setup = () => {
@@ -677,13 +678,13 @@ body.addin .settings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>
-<script>window.FE_VERSION = {"version": "1.5.0", "datum": "2026-10-11", "neu": "Verlauf an „Rückgängig“ und „Wiederholen“: Der kleine Pfeil zeigt die letzten 20 Schritte. Ausgewählte Schritte lassen sich einzeln rückgängig machen oder auf eine andere Formel übertragen."};</script>
-<script src="eqn3.js?v=1.5.0"></script>
-<script src="convert.js?v=1.5.0"></script>
-<script src="addin.js?v=1.5.0"></script>
-<script src="layout.js?v=1.5.0"></script>
-<script src="history.js?v=1.5.0"></script>
-<script src="bulk.js?v=1.5.0"></script>
-<script src="setup.js?v=1.5.0"></script>
+<script>window.FE_VERSION = {"version": "1.6.0", "datum": "2026-10-11", "neu": "Integrale und mehrzeilige Formeln aus dem alten Formel-Editor werden richtig umgewandelt, Formeln im Fließtext bleiben wissenschaftlich, Farbe für Zeichen, Leertaste in Zahlen, fette griechische Buchstaben, Knopf „Ohne Änderung übernehmen“."};</script>
+<script src="eqn3.js?v=1.6.0"></script>
+<script src="convert.js?v=1.6.0"></script>
+<script src="addin.js?v=1.6.0"></script>
+<script src="layout.js?v=1.6.0"></script>
+<script src="history.js?v=1.6.0"></script>
+<script src="bulk.js?v=1.6.0"></script>
+<script src="setup.js?v=1.6.0"></script>
 </body>
 </html>

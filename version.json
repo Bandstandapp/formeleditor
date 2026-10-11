@@ -1,1 +1,1 @@
-{"version": "1.5.0", "datum": "2026-10-11", "neu": "Verlauf an „Rückgängig“ und „Wiederholen“: Der kleine Pfeil zeigt die letzten 20 Schritte. Ausgewählte Schritte lassen sich einzeln rückgängig machen oder auf eine andere Formel übertragen."}
+{"version": "1.6.0", "datum": "2026-10-11", "neu": "Integrale und mehrzeilige Formeln aus dem alten Formel-Editor werden richtig umgewandelt, Formeln im Fließtext bleiben wissenschaftlich, Farbe für Zeichen, Leertaste in Zahlen, fette griechische Buchstaben, Knopf „Ohne Änderung übernehmen“."}
