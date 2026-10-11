@@ -81,20 +81,38 @@
 .fe-num .fe-num-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fe-num input[type=text] { font: inherit; font-size: 1rem; width: 6.5em; padding: 5px 8px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); }
 .fe-num input[type=text]:focus-visible { outline: 3px solid var(--focus); }
-.fe-num .fe-check { font-size: .95rem; }`;
+.fe-num .fe-check { font-size: .95rem; }
+.fe-num input.fe-mm { width: 4.2em; text-align: right; }
+.fe-num .fe-rand { font-size: .95rem; }
+.fe-num #fe-num-align { justify-self: start; text-align: left; font-size: .95rem; }`;
   document.head.appendChild(css);
   const box = document.createElement('div');
   box.className = 'fe-num'; box.hidden = true;
   box.innerHTML = '<label class="fe-check"><input type="checkbox" id="fe-num-on"> Gleichungsnummer</label>' +
     '<div class="fe-num-more" hidden><div class="fe-num-row">(<input type="text" id="fe-num" inputmode="decimal" autocomplete="off" aria-label="Gleichungsnummer">)' +
     '<button type="button" class="linkbtn" id="fe-num-sug">Vorschlag</button></div>' +
-    '<label class="fe-check"><input type="checkbox" id="fe-num-shift" checked> Folgende Nummern weiterzählen, auch in Verweisen</label></div>' +
+    '<label class="fe-check"><input type="checkbox" id="fe-num-shift" checked> Folgende Nummern weiterzählen, auch in Verweisen</label>' +
+    '<div class="fe-num-row fe-rand"><label for="fe-num-rand">Abstand zum rechten Rand</label>' +
+    '<input type="text" class="fe-mm" id="fe-num-rand" inputmode="decimal" autocomplete="off"> mm</div>' +
+    '<button type="button" class="linkbtn" id="fe-num-align">Alle Nummern im Dokument so ausrichten</button></div>' +
     '<p class="hint" id="fe-num-msg" role="status"></p>';
   const modeBox = q('#mode');
   (modeBox && modeBox.parentElement === vorschau ? modeBox : vorschau.querySelector('.paper')).after(box);
   const on = box.querySelector('#fe-num-on'), field = box.querySelector('#fe-num'), shiftBox = box.querySelector('#fe-num-shift');
   const more = box.querySelector('.fe-num-more'), msg = box.querySelector('#fe-num-msg');
+  const randField = box.querySelector('#fe-num-rand');
   try { on.checked = localStorage.getItem('fe-num-on') === '1'; shiftBox.checked = localStorage.getItem('fe-num-shift') !== '0'; } catch (e) {}
+  try { randField.value = (localStorage.getItem('fe-num-rand') || '0').replace('.', ','); } catch (e) { randField.value = '0'; }
+  // Abstand der Nummer vom rechten Rand in mm (Standard für alle Nummern), als Einzug in Punkt
+  function randMm() {
+    const v = parseFloat(String(randField.value).replace(',', '.'));
+    return isFinite(v) && v > 0 ? Math.min(v, 100) : 0;
+  }
+  const randPt = () => Math.round(randMm() * 72 / 25.4 * 10) / 10;
+  randField.addEventListener('change', () => {
+    randField.value = String(randMm()).replace('.', ',');
+    try { localStorage.setItem('fe-num-rand', String(randMm())); } catch (e) {}
+  });
   const inWord = () => typeof Word !== 'undefined' && typeof Office !== 'undefined' && Office.context && Office.context.document;
 
   // Nummer in der Vorschau anzeigen
@@ -215,7 +233,73 @@
     const note = pendingNote; pendingNote = '';
     return note;
   }
-  root.FeNummer = {wanted, beforeInsert, done};
+  // Nach dem Einfügen: Absatz der Formel bekommt den Einzug rechts, an dem die Nummer endet
+  function afterInsert(range) {
+    range.paragraphs.getFirst().rightIndent = randPt();
+  }
+  root.FeNummer = {wanted, beforeInsert, afterInsert, done};
+
+  // Alle Gleichungsnummern im Dokument rechtsbündig mit demselben Abstand zum rechten Rand setzen.
+  // Leerraum (Tabs, Leerzeichen) zwischen Formel und Nummer wird durch einen Tabulator am rechten Einzug ersetzt.
+  const PTAB = '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage"><pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">' +
+    '<pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships></pkg:xmlData></pkg:part>' +
+    '<pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"><pkg:xmlData>' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:ptab w:relativeTo="indent" w:alignment="right" w:leader="none"/></w:r></w:p></w:body></w:document>' +
+    '</pkg:xmlData></pkg:part></pkg:package>';
+  const blank = t => /^[\s\u00a0]*$/.test(t || '');
+  async function alignAll() {
+    const pt = randPt();
+    let done = 0, skipped = [];
+    await Word.run(async ctx => {
+      const ps = ctx.document.body.paragraphs;
+      ps.load('items/text');
+      await ctx.sync();
+      const todo = ps.items.map(p => ({p, num: endNumber(p.text)})).filter(x => x.num);
+      for (const {p, num} of todo) {
+        const hits = p.search('(' + num + ')', {matchCase: true});
+        const pics = p.inlinePictures;
+        const tabs = p.search('^t');
+        hits.load('items'); pics.load('items'); tabs.load('items');
+        await ctx.sync();
+        if (!hits.items.length) { skipped.push(num); continue; }
+        const at = hits.items[hits.items.length - 1].getRange('Start');
+        // Am liebsten alles zwischen der letzten Formel und der Nummer, wenn dort nur Leerraum steht
+        let gap = null;
+        if (pics.items.length) {
+          const g = pics.items[pics.items.length - 1].getRange('End').expandTo(at);
+          g.load('text');
+          await ctx.sync();
+          if (blank(g.text)) gap = g;
+        }
+        // Sonst die Tabs unmittelbar vor der Nummer
+        if (!gap) {
+          const before = p.getRange('Start').expandTo(at);
+          before.load('text');
+          await ctx.sync();
+          const trail = (before.text.match(/[\t ]*$/) || [''])[0];
+          const k = (trail.match(/\t/g) || []).length;
+          if (k && tabs.items.length >= k) gap = tabs.items[tabs.items.length - k].expandTo(at);
+        }
+        if (gap) gap.insertOoxml(PTAB, 'Replace');
+        else at.insertOoxml(PTAB, 'Replace');
+        p.rightIndent = pt;
+        done++;
+      }
+      await ctx.sync();
+    });
+    return {done, skipped};
+  }
+  box.querySelector('#fe-num-align').addEventListener('click', async () => {
+    randField.dispatchEvent(new Event('change'));
+    if (!inWord()) { msg.textContent = 'Das geht nur, wenn der Editor in Word geöffnet ist.'; return; }
+    msg.textContent = 'Nummern werden ausgerichtet …';
+    try {
+      const r = await alignAll();
+      msg.textContent = r.done ? (r.done === 1 ? '1 Nummer' : r.done + ' Nummern') + ' mit ' + String(randMm()).replace('.', ',') + ' mm Abstand zum rechten Rand ausgerichtet.' +
+        (r.skipped.length ? ' Nicht gefunden: ' + r.skipped.map(x => '(' + x + ')').join(', ') + '.' : '')
+        : 'Im Dokument stehen keine Gleichungsnummern am Ende von Formel-Absätzen.';
+    } catch (e) { msg.textContent = 'Das Ausrichten hat nicht geklappt: ' + (e && e.message ? e.message : e); }
+  });
 
   // ---------- Prüfen in „Alles bearbeiten“ ----------
   const sec = q('section[aria-label="Dokument"]');

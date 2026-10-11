@@ -121,7 +121,7 @@
   }
 
   // Ein Absatz mit einem einzigen Bild; Word übernimmt es beim Einfügen in die laufende Zeile.
-  // num: Gleichungsnummer wie „4.13“; sie steht rechtsbündig am Rand (absoluter Tabulator, ohne Tabstopps)
+  // num: Gleichungsnummer wie „4.13“; sie steht rechtsbündig am rechten Einzug des Absatzes (absoluter Tabulator, ohne Tabstopps)
   function ooxml(r, meta, num) {
     const emu = pt => Math.round(pt * 12700);
     const cx = emu(r.wpt), cy = emu(r.hpt);
@@ -152,7 +152,7 @@
       '<a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
       '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
       '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>' +
-      (num ? '<w:r><w:ptab w:relativeTo="margin" w:alignment="right" w:leader="none"/><w:t xml:space="preserve">(' + xmlEsc(num) + ')</w:t></w:r>' : '') +
+      (num ? '<w:r><w:ptab w:relativeTo="indent" w:alignment="right" w:leader="none"/><w:t xml:space="preserve">(' + xmlEsc(num) + ')</w:t></w:r>' : '') +
       '</w:p></w:body></w:document></pkg:xmlData></pkg:part>' +
       '<pkg:part pkg:name="/word/media/formel.png" pkg:contentType="image/png" pkg:compression="store"><pkg:binaryData>' + png + '</pkg:binaryData></pkg:part>' +
       '<pkg:part pkg:name="/word/media/formel.svg" pkg:contentType="image/svg+xml" pkg:compression="store"><pkg:binaryData>' + svg + '</pkg:binaryData></pkg:part>' +
@@ -276,7 +276,7 @@
         const f = current ? await selectedFormula(ctx) : null;
         if (f && f.kind === 'new') { f.pic.getRange('Whole').insertOoxml(xml, 'Replace'); replaced = true; }
         else if (f) { f.range.insertOoxml(xml, 'Replace'); replaced = true; }
-        else if (num) { const at = await FeNummer.beforeInsert(ctx, num); at.insertOoxml(xml, 'Replace'); }
+        else if (num) { const at = await FeNummer.beforeInsert(ctx, num); FeNummer.afterInsert(at.insertOoxml(xml, 'Replace')); }
         else ctx.document.getSelection().insertOoxml(xml, 'Replace');
         await ctx.sync();
       });
