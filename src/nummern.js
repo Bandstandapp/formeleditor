@@ -82,23 +82,25 @@
 .fe-num input[type=text] { font: inherit; font-size: 1rem; width: 6.5em; padding: 5px 8px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); }
 .fe-num input[type=text]:focus-visible { outline: 3px solid var(--focus); }
 .fe-num .fe-check { font-size: .95rem; }
-.fe-num #fe-num-align { justify-self: start; text-align: left; font-size: .95rem; }`;
+.fe-num #fe-num-why { margin: 0; }
+.fe-num #fe-num-why:empty, .fe-num #fe-num-msg:empty { display: none; }`;
   document.head.appendChild(css);
   const box = document.createElement('div');
-  box.className = 'fe-num'; box.hidden = true;
-  box.innerHTML = '<label class="fe-check"><input type="checkbox" id="fe-num-on"> Gleichungsnummer</label>' +
+  box.className = 'fe-num';
+  box.innerHTML = '<label class="fe-check"><input type="checkbox" id="fe-num-on"> Gleichungsnummer erzeugen</label>' +
+    '<p class="hint" id="fe-num-why"></p>' +
     '<div class="fe-num-more" hidden><div class="fe-num-row">(<input type="text" id="fe-num" inputmode="decimal" autocomplete="off" aria-label="Gleichungsnummer">)' +
     '<button type="button" class="linkbtn" id="fe-num-sug">Vorschlag</button></div>' +
-    '<label class="fe-check"><input type="checkbox" id="fe-num-shift" checked> Folgende Nummern weiterzählen, auch in Verweisen</label>' +
-    '<button type="button" class="linkbtn" id="fe-num-align">Alle Formeln und Nummern im Dokument wie im Lineal ausrichten</button></div>' +
+    '<label class="fe-check"><input type="checkbox" id="fe-num-shift" checked> Folgende Nummern weiterzählen, auch in Verweisen</label></div>' +
     '<p class="hint" id="fe-num-msg" role="status"></p>';
   const modeBox = q('#mode');
   (modeBox && modeBox.parentElement === vorschau ? modeBox : vorschau.querySelector('.paper')).after(box);
   const on = box.querySelector('#fe-num-on'), field = box.querySelector('#fe-num'), shiftBox = box.querySelector('#fe-num-shift');
-  const more = box.querySelector('.fe-num-more'), msg = box.querySelector('#fe-num-msg');
+  const more = box.querySelector('.fe-num-more'), msg = box.querySelector('#fe-num-msg'), why = box.querySelector('#fe-num-why');
   try { on.checked = localStorage.getItem('fe-num-on') === '1'; shiftBox.checked = localStorage.getItem('fe-num-shift') !== '0'; } catch (e) {}
   // Einzüge aus dem Lineal (lineal.js); ohne Lineal am Rand
-  const L = () => window.FeLineal || {leftPt: () => 0, rightPt: () => 0, text: () => ''};
+  const L = () => window.FeLineal || {leftPt: () => 0, rightPt: () => 0, text: () => '', use: () => false, visible: () => false};
+  const useRuler = () => L().visible() && L().use();
   function indent(para) {
     para.leftIndent = L().leftPt();
     para.firstLineIndent = 0;
@@ -111,14 +113,16 @@
   function preview() {
     try {
       const d = q('#out').contentDocument, no = d && d.querySelector('.eq .no');
-      if (no) no.textContent = !box.hidden && on.checked && field.value.trim() ? '(' + field.value.trim() + ')' : '';
+      if (no) no.textContent = !on.disabled && on.checked && field.value.trim() ? '(' + field.value.trim() + ')' : '';
     } catch (e) {}
   }
-  // Nur bei neuen abgesetzten Formeln (wissenschaftlich, nicht beim Ersetzen)
+  // Immer zu sehen; wirkt nur bei neuen abgesetzten Formeln (wissenschaftlich, nicht beim Ersetzen)
   function sync() {
-    const show = mode === 'sci' && !FeWord.editing();
-    if (box.hidden === show) box.hidden = !show;
-    more.hidden = !on.checked;
+    const w = mode !== 'sci' ? 'Gleichungsnummern gibt es nur bei der Darstellung „Wissenschaftlich“.'
+      : FeWord.editing() ? 'Beim Ersetzen bleibt die Nummer der Formel, wie sie ist.' : '';
+    if (why.textContent !== w) why.textContent = w;
+    on.disabled = !!w;
+    more.hidden = !on.checked || !!w;
     preview();
   }
   setInterval(sync, 400);
@@ -164,7 +168,7 @@
     let t;
     Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, () => {
       clearTimeout(t);
-      t = setTimeout(() => { if (on.checked && !box.hidden && auto) makeSuggestion(); }, 600);
+      t = setTimeout(() => { if (on.checked && !on.disabled && auto) makeSuggestion(); }, 600);
     });
   }
 
@@ -172,7 +176,7 @@
   // Gewünschte Nummer für die nächste eingefügte Formel, sonst null
   function wanted() {
     sync();
-    if (box.hidden || !on.checked) return null;
+    if (on.disabled || !on.checked) return null;
     const v = field.value.trim().replace(/^\(|\)$/g, '');
     return VALID.test(v) ? v : null;
   }
@@ -213,9 +217,27 @@
     const para = sel.paragraphs.getFirst();
     para.load('text');
     await ctx.sync();
-    if (para.text.replace(/[\s\ufffc]/g, '')) return para.insertParagraph('', 'After').getRange('Start');
+    if (para.text.replace(/[\s\ufffc]/g, '')) {
+      const np = para.insertParagraph('', 'After');
+      if (useRuler()) indent(np);
+      return np.getRange('Start');
+    }
+    if (useRuler()) indent(para);
     return sel;
   }
+  // Ohne Nummer: Steht die neue Formel allein in ihrem Absatz? Dann bekommt sie die Einzüge aus dem Lineal
+  // (eine Formel im Fließtext nicht). Liefert die Absatzeigenschaften für das OOXML oder ''.
+  async function placeUnnumbered(ctx) {
+    if (!useRuler()) return '';
+    const para = ctx.document.getSelection().paragraphs.getFirst();
+    para.load('text');
+    await ctx.sync();
+    if (para.text.replace(/[\s\ufffc]/g, '')) return '';
+    indent(para);
+    return L().pPr();
+  }
+  // Absatzeigenschaften für eine nummerierte Formel (eigener Absatz)
+  const pPr = () => useRuler() ? L().pPr() : '';
   // Nach dem Einfügen: Nummer für die nächste Formel vorschlagen
   function done(num) {
     const s = split(num);
@@ -228,7 +250,7 @@
   // Nach dem Einfügen einer abgesetzten Formel: Einzüge wie im Lineal. Mit Nummer hat die Formel ihren
   // eigenen Absatz; ohne Nummer nur, wenn der Absatz außer der Formel nichts enthält (keine Formel im Fließtext).
   async function afterInsert(ctx, range, numbered) {
-    if (!window.FeLineal || !FeLineal.visible()) return;
+    if (!useRuler()) return;
     const para = range.paragraphs.getFirst();
     if (!numbered) {
       para.load('text');
@@ -237,7 +259,7 @@
     }
     indent(para);
   }
-  root.FeNummer = {wanted, beforeInsert, afterInsert, afterReplace, done};
+  root.FeNummer = {wanted, beforeInsert, placeUnnumbered, pPr, afterInsert, afterReplace, done};
 
   // Formeln mit Nummer wie im Lineal setzen: Einzug links für die Formel, Einzug rechts für das Ende der Nummer.
   // Leerraum (Tabs, Leerzeichen) zwischen Formel und Nummer wird durch einen Tabulator am rechten Einzug ersetzt.
@@ -288,24 +310,34 @@
     indent(p);
     return true;
   }
-  async function alignAll() {
-    let done = 0, skipped = [];
+  // Alle abgesetzten Formeln: Absätze mit Nummer am Ende und Absätze, in denen nur eine Formel steht.
+  // progress(i, n) meldet den Fortschritt.
+  async function alignAll(progress) {
+    let done = 0, numbered = 0, skipped = [];
     await Word.run(async ctx => {
       const ps = ctx.document.body.paragraphs;
       ps.load('items/text');
       await ctx.sync();
-      const todo = ps.items.map(p => ({p, num: endNumber(p.text)})).filter(x => x.num);
-      for (const {p, num} of todo) {
-        if (await alignPara(ctx, p, num)) done++; else skipped.push(num);
+      // Absätze ohne Text: nachsehen, ob eine Formel aus diesem Editor darin steht
+      const empty = ps.items.filter(p => !endNumber(p.text) && blank(String(p.text || '').replace(/[\u0000-\u001f\ufffc]/g, '')));
+      empty.forEach(p => p.inlinePictures.load('items/altTextDescription,items/altTextTitle'));
+      if (empty.length) await ctx.sync();
+      const isFormula = p => p.inlinePictures.items.some(x => /FORMEL:/.test((x.altTextDescription || '') + (x.altTextTitle || '')));
+      const todo = ps.items.map(p => ({p, num: endNumber(p.text)})).filter(x => x.num || (empty.includes(x.p) && isFormula(x.p)));
+      if (progress) progress(0, todo.length);
+      for (let i = 0; i < todo.length; i++) {
+        const {p, num} = todo[i];
+        if (await alignPara(ctx, p, num)) { done++; if (num) numbered++; } else skipped.push(num);
+        if (progress) progress(i + 1, todo.length);
       }
       await ctx.sync();
     });
-    return {done, skipped};
+    return {done, numbered, skipped};
   }
-  // Nach dem Ersetzen einer geladenen Formel: nur wenn im Lineal etwas verschoben wurde und die Formel
+  // Nach dem Ersetzen einer geladenen Formel: wenn „Werte für Formel übernehmen“ an ist und die Formel
   // allein (mit oder ohne Nummer) in ihrem Absatz steht
   async function afterReplace(ctx, range) {
-    if (!window.FeLineal || !FeLineal.visible() || !FeLineal.movedDuringEdit()) return;
+    if (!useRuler()) return;
     const p = range.paragraphs.getFirst();
     p.load('text');
     await ctx.sync();
@@ -314,15 +346,25 @@
     if (rest.replace(/[\s\ufffc]/g, '')) return;
     await alignPara(ctx, p, num);
   }
-  box.querySelector('#fe-num-align').addEventListener('click', async () => {
-    if (!inWord()) { msg.textContent = 'Das geht nur, wenn der Editor in Word geöffnet ist.'; return; }
-    msg.textContent = 'Nummern werden ausgerichtet …';
+  // Knopf unter dem Lineal (lineal.js): alle Formeln ausrichten, mit Fortschrittsbalken
+  const alignBtn = q('#fe-align'), bar = q('#fe-align-bar'), amsg = q('#fe-align-msg');
+  if (alignBtn) alignBtn.addEventListener('click', async () => {
+    if (!inWord()) { amsg.textContent = 'Das geht nur, wenn der Editor in Word geöffnet ist.'; return; }
+    alignBtn.disabled = true;
+    amsg.textContent = 'Formeln werden ausgerichtet …';
+    bar.value = 0; bar.max = 1; bar.hidden = false;
     try {
-      const r = await alignAll();
-      msg.textContent = r.done ? (r.done === 1 ? '1 Nummer' : r.done + ' Nummern') + ' ausgerichtet: ' + L().text() + '.' +
-        (r.skipped.length ? ' Nicht gefunden: ' + r.skipped.map(x => '(' + x + ')').join(', ') + '.' : '')
-        : 'Im Dokument stehen keine Gleichungsnummern am Ende von Formel-Absätzen.';
-    } catch (e) { msg.textContent = 'Das Ausrichten hat nicht geklappt: ' + (e && e.message ? e.message : e); }
+      const r = await alignAll((i, n) => {
+        bar.max = Math.max(1, n); bar.value = i;
+        amsg.textContent = 'Formeln werden ausgerichtet: ' + i + ' von ' + n + ' …';
+      });
+      const f = n => n === 1 ? '1 Formel' : n + ' Formeln';
+      amsg.textContent = r.done || r.skipped.length
+        ? 'Ausrichtung abgeschlossen. ' + f(r.done) + ' ausgerichtet' + (r.numbered ? ', davon ' + r.numbered + ' mit Nummer' : '') + ' (' + L().text() + ').' +
+          (r.skipped.length ? ' Nicht gefunden: ' + r.skipped.map(x => '(' + x + ')').join(', ') + '.' : '')
+        : 'Ausrichtung abgeschlossen. Im Dokument steht keine abgesetzte Formel.';
+    } catch (e) { amsg.textContent = 'Das Ausrichten hat nicht geklappt: ' + (e && e.message ? e.message : e); }
+    finally { bar.hidden = true; alignBtn.disabled = false; }
   });
 
   // ---------- Prüfen in „Alles bearbeiten“ ----------

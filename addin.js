@@ -122,7 +122,8 @@
 
   // Ein Absatz mit einem einzigen Bild; Word übernimmt es beim Einfügen in die laufende Zeile.
   // num: Gleichungsnummer wie „4.13“; sie steht rechtsbündig am rechten Einzug des Absatzes (absoluter Tabulator, ohne Tabstopps)
-  function ooxml(r, meta, num) {
+  // pPr: Absatzeigenschaften (Einzüge aus dem Lineal) für eine Formel im eigenen Absatz, sonst leer
+  function ooxml(r, meta, num, pPr) {
     const emu = pt => Math.round(pt * 12700);
     const cx = emu(r.wpt), cy = emu(r.hpt);
     const png = r.dataUrl.split(',')[1];
@@ -142,7 +143,7 @@
       '<pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"><pkg:xmlData>' +
       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="' + rel + '"' +
       ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"' +
-      ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body><w:p><w:r><w:rPr><w:position w:val="' + drop + '"/></w:rPr><w:drawing>' +
+      ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body><w:p>' + (pPr || '') + '<w:r><w:rPr><w:position w:val="' + drop + '"/></w:rPr><w:drawing>' +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:effectExtent l="0" t="0" r="0" b="0"/>' +
       '<wp:docPr id="1" name="Formel" descr="' + d + '"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>' +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>' +
@@ -270,18 +271,23 @@
       const r = await frame.contentWindow.__png(sizePt, 0, pad);
       // Neue abgesetzte Formel auf Wunsch mit Gleichungsnummer (nummern.js)
       const num = !current && window.FeNummer ? FeNummer.wanted() : null;
-      const xml = ooxml(r, meta, num);
       let replaced = false, numText = '';
+      // Neue Formel im eigenen Absatz kommt gleich mit den Einzügen aus dem Lineal (nummern.js, lineal.js)
       await Word.run(async ctx => {
         const f = current ? await selectedFormula(ctx) : null;
         if (f) {
+          const xml = ooxml(r, meta, null);
           const at = f.kind === 'new' ? f.pic.getRange('Whole').insertOoxml(xml, 'Replace') : f.range.insertOoxml(xml, 'Replace');
           replaced = true;
           if (window.FeNummer) await FeNummer.afterReplace(ctx, at);
         }
-        else if (num) { const at = await FeNummer.beforeInsert(ctx, num); await FeNummer.afterInsert(ctx, at.insertOoxml(xml, 'Replace'), true); }
+        else if (num) {
+          const at = await FeNummer.beforeInsert(ctx, num);
+          await FeNummer.afterInsert(ctx, at.insertOoxml(ooxml(r, meta, num, FeNummer.pPr()), 'Replace'), true);
+        }
         else {
-          const at = ctx.document.getSelection().insertOoxml(xml, 'Replace');
+          const pPr = window.FeNummer ? await FeNummer.placeUnnumbered(ctx) : '';
+          const at = ctx.document.getSelection().insertOoxml(ooxml(r, meta, null, pPr), 'Replace');
           if (window.FeNummer) await FeNummer.afterInsert(ctx, at, false);
         }
         await ctx.sync();
