@@ -45,8 +45,8 @@ body.addin .fe-swatches { display: flex; gap: 6px; padding: 6px; border: 1.5px s
 body.addin .fe-swatches[hidden] { display: none !important; }
 body.addin .stylebar .fe-swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); padding: 0; }
 body.addin h1, body.addin h2, body.addin h3 { font-family: var(--f-ui) !important; font-weight: 700; }
-.fe-maintabs { order: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; border-radius: 11px; background: var(--tab-track); }
-.fe-maintabs button { font: inherit; font-weight: 500; font-size: 1rem; padding: 8px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--fg); cursor: pointer; }
+.fe-maintabs { order: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 11px; background: var(--tab-track); }
+.fe-maintabs button { font: inherit; font-weight: 500; font-size: 1rem; padding: 8px 6px; border: 0; border-radius: 8px; background: var(--tab-off); box-shadow: var(--tab-edge); color: var(--fg); cursor: pointer; }
 .fe-maintabs button:hover { background: var(--tab-hover); }
 .fe-maintabs button[aria-selected="true"] { background: var(--tab-on); font-weight: 700; box-shadow: var(--tab-shadow); }
 .fe-maintabs button:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }

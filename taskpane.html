@@ -29,14 +29,14 @@
   --f-head: "Newsreader", Georgia, "Times New Roman", serif;
   --s-0: 1rem; --s-1: 1.125rem; --s-2: 1.375rem; --s-3: 1.75rem; --s-4: 2.4rem;
   --r: 10px;
-  --tab-track: #e1e4ea; --tab-hover: rgba(0,0,0,.05); --tab-on: #ffffff; --tab-shadow: 0 1px 2px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.08);
+  --tab-track: #e1e4ea; --tab-hover: rgba(0,0,0,.05); --tab-on: #ffffff; --tab-shadow: 0 1px 2px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.08); --tab-off: rgba(255,255,255,.45); --tab-edge: inset 0 0 0 1px rgba(0,0,0,.13);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #11161d; --surface: #1b232d; --fg: #e8edf3; --muted: #a3afbd; --line: #33404f;
     --accent: #8fb0f2; --accent-soft: #24324a; --accent-fg: #0d1522;
     --paper: #fbfbf9; --paper-ink: #111111; --paper-edge: #3a4553; --focus: #f2c14e;
-    --tab-track: rgba(255,255,255,.07); --tab-hover: rgba(255,255,255,.06); --tab-on: #3a4656; --tab-shadow: 0 1px 2px rgba(0,0,0,.4);
+    --tab-track: rgba(255,255,255,.07); --tab-hover: rgba(255,255,255,.06); --tab-on: #3a4656; --tab-shadow: 0 1px 2px rgba(0,0,0,.4); --tab-off: rgba(255,255,255,.04); --tab-edge: inset 0 0 0 1px rgba(255,255,255,.14);
     color-scheme: dark;
   }
 }
@@ -44,7 +44,7 @@
   --bg: #11161d; --surface: #1b232d; --fg: #e8edf3; --muted: #a3afbd; --line: #33404f;
   --accent: #8fb0f2; --accent-soft: #24324a; --accent-fg: #0d1522;
   --paper: #fbfbf9; --paper-ink: #111111; --paper-edge: #3a4553; --focus: #f2c14e;
-  --tab-track: rgba(255,255,255,.07); --tab-hover: rgba(255,255,255,.06); --tab-on: #3a4656; --tab-shadow: 0 1px 2px rgba(0,0,0,.4);
+  --tab-track: rgba(255,255,255,.07); --tab-hover: rgba(255,255,255,.06); --tab-on: #3a4656; --tab-shadow: 0 1px 2px rgba(0,0,0,.4); --tab-off: rgba(255,255,255,.04); --tab-edge: inset 0 0 0 1px rgba(255,255,255,.14);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -56,9 +56,9 @@ header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
 .label { font-size: var(--s-0); font-weight: 700; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin: 0; }
 
 /* Tabs for the tool rows */
-/* Reiter wie in Safari: graue Leiste, der gewählte Reiter hebt sich weiß davon ab */
-.tabs { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; border-radius: 11px; background: var(--tab-track); }
-.tab { font: inherit; font-size: var(--s-1); font-weight: 500; padding: 8px 18px; border-radius: 8px; border: 0; background: transparent; color: var(--fg); cursor: pointer; }
+/* Reiter wie in Safari: graue Leiste, der gewählte Reiter hebt sich weiß davon ab; die anderen sind fein umrandet */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 11px; background: var(--tab-track); }
+.tab { font: inherit; font-size: var(--s-1); font-weight: 500; padding: 8px 18px; border-radius: 8px; border: 0; background: var(--tab-off); box-shadow: var(--tab-edge); color: var(--fg); cursor: pointer; }
 .tab:hover { background: var(--tab-hover); }
 .tab[aria-selected="true"] { background: var(--tab-on); font-weight: 700; box-shadow: var(--tab-shadow); }
 .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
@@ -766,17 +766,17 @@ body.addin .settings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>
-<script>window.FE_VERSION = {"version": "1.7.5", "datum": "2026-10-12", "neu": "Die Nummer endet genau an der Stelle im Lineal (echter rechter Tabstopp, kein Zeilenumbruch mehr); geladene Formeln zeigen ihre Nummer; Balken orange, Knopf blau."};</script>
-<script src="eqn3.js?v=1.7.5"></script>
-<script src="convert.js?v=1.7.5"></script>
-<script src="addin.js?v=1.7.5"></script>
-<script src="layout.js?v=1.7.5"></script>
-<script src="bausteine.js?v=1.7.5"></script>
-<script src="history.js?v=1.7.5"></script>
-<script src="bulk.js?v=1.7.5"></script>
-<script src="lineal.js?v=1.7.5"></script>
-<script src="nummern.js?v=1.7.5"></script>
-<script src="setup.js?v=1.7.5"></script>
-<script src="melden.js?v=1.7.5"></script>
+<script>window.FE_VERSION = {"version": "1.7.6", "datum": "2026-10-12", "neu": "Die nicht gewählten Reiter sind fein umrandet und dadurch klar voneinander getrennt."};</script>
+<script src="eqn3.js?v=1.7.6"></script>
+<script src="convert.js?v=1.7.6"></script>
+<script src="addin.js?v=1.7.6"></script>
+<script src="layout.js?v=1.7.6"></script>
+<script src="bausteine.js?v=1.7.6"></script>
+<script src="history.js?v=1.7.6"></script>
+<script src="bulk.js?v=1.7.6"></script>
+<script src="lineal.js?v=1.7.6"></script>
+<script src="nummern.js?v=1.7.6"></script>
+<script src="setup.js?v=1.7.6"></script>
+<script src="melden.js?v=1.7.6"></script>
 </body>
 </html>
