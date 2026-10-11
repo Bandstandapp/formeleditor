@@ -38,7 +38,7 @@ Falls der Eintrag nicht erscheint, Word mit ⌘Q ganz beenden und neu starten. H
 
 ## So wird der Editor benutzt
 
-Der Editor hat oben zwei Reiter. **Formel bearbeiten** ist beim Öffnen gewählt und enthält die Kacheln Bausteine, Eingabe und Vorschau. **Alles bearbeiten** enthält die Werkzeuge für das ganze Dokument. Hinter jeder Überschrift erklärt ein kleines **i** die Kachel, sobald man mit der Maus darauf zeigt.
+Beim Öffnen ist die Eingabe leer. Der Editor hat oben zwei Reiter. **Formel bearbeiten** ist beim Öffnen gewählt und enthält die Kacheln Bausteine, Eingabe und Vorschau. **Alles bearbeiten** enthält die Werkzeuge für das ganze Dokument. Hinter jeder Überschrift erklärt ein kleines **i** die Kachel, sobald man mit der Maus darauf zeigt.
 
 - **Neue Formel:** Den Cursor im Text an die gewünschte Stelle setzen. Die Formel aus den Bausteinen zusammensetzen oder tippen und auf **In Word einfügen** klicken. Den Knopf gibt es unter der Eingabe und unter der Vorschau.
 - **Fett, kursiv und Farbe:** Zeichen in der Eingabe markieren und auf **F** (fett), **K** (kursiv bzw. aufrecht) oder **A** (Farbe) klicken. Ohne Markierung gilt die Wahl für die nächsten Zeichen.
@@ -68,7 +68,7 @@ Unten im Editor stehen Name und Version, zum Beispiel „Papas Formeleditor · V
 
 - Gibt es eine neuere Version, erscheint beim Start oben ein blauer Hinweis. In der Einrichtung fragt der Editor dann „Jetzt aktualisieren?“. Mit **Ja, jetzt aktualisieren** lädt er sich neu und holt dabei die neuen Dateien von GitHub. Eine gerade eingegebene, noch nicht eingefügte Formel geht dabei verloren.
 - **Editor neu laden** lädt den Editor auch ohne neue Version frisch von GitHub.
-- **Dokumentation herunterladen** öffnet diese Anleitung als Word-Datei im Browser.
+- **Dokumentation herunterladen** öffnet die bebilderte Bedienungsanleitung als Word-Datei im Browser. Ihre Quelle liegt in `docs/anleitung/`.
 - Die Einrichtungsdatei aus Schritt 1 muss für ein Update nicht neu geladen werden. Nur wenn sich der Name des Knopfs im Reiter Start ändern soll, Schritt 1 einmal wiederholen.
 
 Zeigt der Editor gar keine Versionsnummer an, läuft noch eine ältere Fassung aus dem Zwischenspeicher von Word. Dann Word mit ⌘Q beenden und neu starten. Hilft das nicht, bei beendetem Word diese Zeile im Terminal ausführen und Word wieder starten:
