@@ -28,9 +28,10 @@
 .fe-ruler-vals .n .sw { color: #c25e00; }
 .fe-ruler-vals .n.off { opacity: .45; }
 .fe-ruler .fe-check { font-size: .95rem; }
-.fe-ruler #fe-align.btn { justify-self: start; text-align: left; width: auto; min-height: 0; padding: 8px 10px; font-size: .95rem; font-weight: 600; }
-.fe-ruler progress { width: 100%; height: 10px; accent-color: var(--accent); }
-.fe-ruler progress[hidden], .fe-ruler #fe-align-msg:empty { display: none; }
+.fe-ruler #fe-align.btn { justify-self: start; text-align: left; width: auto; min-height: 0; padding: 8px 12px; font-size: .95rem; }
+.fe-ruler .fe-pbar { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.fe-ruler .fe-pbar > span { display: block; height: 100%; width: 0; background: #e8730c; border-radius: 6px; transition: width .2s; }
+.fe-ruler .fe-pbar[hidden], .fe-ruler #fe-align-msg:empty { display: none; }
 .fe-ruler #fe-align-msg { margin: 0; }`;
   document.head.appendChild(css);
 
@@ -42,10 +43,10 @@
     '<button type="button" class="fe-mark" data-k="n" role="slider" aria-label="Gleichungsnummer endet bei (cm vom linken Rand)">' +
     '<svg width="16" height="14" viewBox="0 0 16 14"><path d="M8 0 L16 13 L0 13 Z" fill="#c25e00"/></svg></button></div>' +
     '<div class="fe-ruler-vals"><label class="f"><span class="sw"></span>Formel ab <input type="text" inputmode="decimal" data-k="f" aria-label="Formel ab, in cm"> cm</label>' +
-    '<label class="n"><span class="sw"></span>Nummer bis <input type="text" inputmode="decimal" data-k="n" aria-label="Nummer bis, in cm"> cm</label></div>' +
+    '<label class="n"><span class="sw"></span>Nummer endet bei <input type="text" inputmode="decimal" data-k="n" aria-label="Nummer endet bei, in cm"> cm</label></div>' +
     '<label class="fe-check"><input type="checkbox" id="fe-lineal-use"> Werte für Formel übernehmen</label>' +
-    '<button type="button" class="btn" id="fe-align">Formeln und Nummern im Dokument wie im Lineal ausrichten</button>' +
-    '<progress id="fe-align-bar" max="1" value="0" hidden></progress><p class="hint" id="fe-align-msg" role="status"></p>';
+    '<button type="button" class="btn primary" id="fe-align">Formeln und Nummern im Dokument wie im Lineal ausrichten</button>' +
+    '<div class="fe-pbar" id="fe-align-bar" role="presentation" hidden><span></span></div><p class="hint" id="fe-align-msg" role="status"></p>';
   paper.before(box);
   const bar = box.querySelector('.fe-ruler-bar'), scale = box.querySelector('svg.scale');
   const marks = {f: box.querySelector('.fe-mark[data-k="f"]'), n: box.querySelector('.fe-mark[data-k="n"]')};
@@ -165,10 +166,11 @@
     visible: () => shown,
     use: () => use.checked,
     leftPt: () => pt(pos.f),
-    rightPt: () => pt(Math.max(0, tw() - nVal())),
-    // Absatzeigenschaften für das OOXML einer neuen Formel (Twips)
-    pPr: () => '<w:pPr><w:ind w:left="' + Math.round(pt(pos.f) * 20) + '" w:right="' + Math.round(pt(Math.max(0, tw() - nVal())) * 20) + '" w:firstLine="0"/><w:jc w:val="left"/></w:pPr>',
-    text: () => 'Formel ab ' + fmt(pos.f) + ' cm, Nummer bis ' + fmt(nVal()) + ' cm',
+    tabPt: () => pt(nVal()),
+    // Absatzeigenschaften für das OOXML einer neuen Formel (Twips): Einzug links, rechter Tabstopp für die Nummer
+    pPr: () => '<w:pPr><w:tabs><w:tab w:val="right" w:pos="' + Math.round(pt(nVal()) * 20) + '"/></w:tabs>' +
+      '<w:ind w:left="' + Math.round(pt(pos.f) * 20) + '" w:right="0" w:firstLine="0"/><w:jc w:val="left"/></w:pPr>',
+    text: () => 'Formel ab ' + fmt(pos.f) + ' cm, Nummer endet bei ' + fmt(nVal()) + ' cm',
     readPage,
   };
 })();

@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.4
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.5
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -112,7 +112,7 @@ So kommt die Formel ins Dokument:
 
 ### Mit Gleichungsnummer
 
-Unter den Darstellungen steht immer das Kästchen **Gleichungsnummer erzeugen**. Es wirkt nur bei **Wissenschaftlich** und nur bei neuen Formeln; sonst ist es grau, und eine kurze Zeile darunter sagt, warum. Ist es angekreuzt, schlägt der Editor die nächste Nummer vor, zum Beispiel (4.13), und schaut dafür auf die Nummern davor und danach im Dokument. Die Nummer lässt sich im Feld ändern. **Vorschlag** holt den Vorschlag zurück.
+Unter den Darstellungen steht immer das Kästchen **Gleichungsnummer erzeugen**. Es wirkt nur bei **Wissenschaftlich** und nur bei neuen Formeln; sonst ist es grau, und eine kurze Zeile darunter sagt, warum. Ist eine vorhandene Formel geladen, zeigt das Kästchen, ob sie eine Nummer hat; die Nummer steht dann auch in der Vorschau und bleibt beim Ersetzen erhalten. Ist es angekreuzt, schlägt der Editor die nächste Nummer vor, zum Beispiel (4.13), und schaut dafür auf die Nummern davor und danach im Dokument. Die Nummer lässt sich im Feld ändern. **Vorschlag** holt den Vorschlag zurück.
 
 Beim Einfügen steht die Formel in einem eigenen Absatz und die Nummer rechtsbündig dahinter. Gibt es (4.13) schon und ist **Folgende Nummern weiterzählen** angekreuzt, macht der Editor aus der alten (4.13) eine (4.14), aus (4.14) eine (4.15) und so weiter, auch an allen Stellen im Text, die darauf verweisen.
 
@@ -121,7 +121,7 @@ Beim Einfügen steht die Formel in einem eigenen Absatz und die Nummer rechtsbü
 Oben in der Vorschau steht ein Lineal wie in Word. Es zeigt die Seite in cm, die grauen Streifen links und rechts sind die Seitenränder des Dokuments. Zwei kleine Dreiecke darunter lassen sich mit der Maus verschieben:
 
 - Das **blaue Dreieck** legt fest, wo die Formel beginnt, gemessen vom linken Rand.
-- Das **orange Dreieck** legt fest, wo die Gleichungsnummer endet. Die Nummer steht rechtsbündig davor.
+- Das **orange Dreieck** legt fest, wo die Gleichungsnummer endet, gemessen ebenfalls vom linken Rand. Bei **Nummer endet bei 13,5 cm** steht die schließende Klammer der Nummer genau bei 13,5 cm auf dem Lineal.
 
 Darunter stehen beide Werte in cm. Man kann sie dort auch eintippen.
 
@@ -130,9 +130,9 @@ Ist **Werte für Formel übernehmen** angekreuzt, kommt jede neue abgesetzte For
 Das Lineal erscheint bei der Darstellung **Wissenschaftlich**, auch wenn eine vorhandene Formel zum Ändern geladen ist.
 
 ![](img/21-nummer.png)
-Caption: Lineal mit Formel ab 2 cm und Nummer bis 15 cm
+Caption: Lineal mit Formel ab 2 cm und Nummer endet bei 15 cm
 
-Der Knopf **Formeln und Nummern im Dokument wie im Lineal ausrichten** setzt alle vorhandenen abgesetzten Formeln so, mit und ohne Nummer, dass Formeln und Nummern genau untereinanderstehen. Ein Balken zeigt, wie weit er ist; am Ende steht **Ausrichtung abgeschlossen**. Am besten vorher eine Kopie des Dokuments speichern.
+Der Knopf **Formeln und Nummern im Dokument wie im Lineal ausrichten** setzt alle vorhandenen abgesetzten Formeln so, mit und ohne Nummer, dass Formeln und Nummern genau untereinanderstehen. Ein oranger Balken zeigt, wie weit er ist; am Ende steht **Ausrichtung abgeschlossen**. Am besten vorher eine Kopie des Dokuments speichern.
 
 > Gut zu wissen. Die Nummer ist normaler Text in Word. Sie lässt sich dort auch von Hand ändern.
 

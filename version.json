@@ -1,1 +1,1 @@
-{"version": "1.7.4", "datum": "2026-10-12", "neu": "„Gleichungsnummer erzeugen“ ist immer zu sehen; neue Formeln kommen gleich wie im Lineal ins Dokument (Häkchen „Werte für Formel übernehmen“); Ausrichten als Knopf mit Fortschrittsbalken."}
+{"version": "1.7.5", "datum": "2026-10-12", "neu": "Die Nummer endet genau an der Stelle im Lineal (echter rechter Tabstopp, kein Zeilenumbruch mehr); geladene Formeln zeigen ihre Nummer; Balken orange, Knopf blau."}
