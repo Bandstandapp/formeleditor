@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.5
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.6
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 

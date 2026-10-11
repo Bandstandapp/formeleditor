@@ -85,7 +85,7 @@ Formeln aus privaten Manuskripten gehören nicht in dieses öffentliche Reposito
 
 ## Version und Aktualisierung
 
-Unten im Editor stehen Name und Version, zum Beispiel „Papas Formeleditor · Version 1.7.5“. Das **Zahnrad** daneben öffnet die Einrichtung. Sie vergleicht diese Version mit der aktuellen Version auf GitHub und bietet die Dokumentation zum Herunterladen an.
+Unten im Editor stehen Name und Version, zum Beispiel „Papas Formeleditor · Version 1.7.6“. Das **Zahnrad** daneben öffnet die Einrichtung. Sie vergleicht diese Version mit der aktuellen Version auf GitHub und bietet die Dokumentation zum Herunterladen an.
 
 - Gibt es eine neuere Version, erscheint beim Start oben ein blauer Hinweis. In der Einrichtung fragt der Editor dann „Jetzt aktualisieren?“. Mit **Ja, jetzt aktualisieren** lädt er sich neu und holt dabei die neuen Dateien von GitHub. Eine gerade eingegebene, noch nicht eingefügte Formel geht dabei verloren.
 - **Editor neu laden** lädt den Editor auch ohne neue Version frisch von GitHub.
