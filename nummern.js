@@ -66,7 +66,80 @@
     const missing = [...new Set(refs.filter(r => !known.has(r)))];
     return {total: eqs.length, refs: refs.length, chapters, missing};
   }
-  const FeNum = {endNumber, suggest, shifts, check, split, VALID};
+  // Absatz mit nummerierter Formel neu setzen (OOXML des Absatzes, wie getOoxml() es liefert):
+  // Einzug links leftTw, ein rechtsbündiger Tabstopp bei tabTw (beides Twips ab linkem Seitenrand),
+  // Leerraum vor der ersten Formel weg, zwischen Formel und Nummer genau ein Tabulator.
+  // Liefert das geänderte OOXML oder null, wenn die Nummer nicht zu finden ist.
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const PPR = ['pStyle', 'keepNext', 'keepLines', 'pageBreakBefore', 'framePr', 'widowControl', 'numPr', 'suppressLineNumbers', 'pBdr', 'shd',
+    'tabs', 'suppressAutoHyphens', 'kinsoku', 'wordWrap', 'overflowPunct', 'topLinePunct', 'autoSpaceDE', 'autoSpaceDN', 'bidi', 'adjustRightInd',
+    'snapToGrid', 'spacing', 'ind', 'contextualSpacing', 'mirrorIndents', 'suppressOverlap', 'jc', 'textDirection', 'textAlignment',
+    'textboxTightWrap', 'outlineLvl', 'divId', 'cnfStyle', 'rPr', 'sectPr', 'pPrChange'];
+  function layoutXml(flat, num, leftTw, tabTw) {
+    const doc = new DOMParser().parseFromString(flat, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) return null;
+    const body = doc.getElementsByTagNameNS(W, 'body')[0];
+    const p = body && Array.from(body.childNodes).find(n => n.localName === 'p' && n.namespaceURI === W);
+    if (!p) return null;
+    const el = (name, attrs) => { const e = doc.createElementNS(W, 'w:' + name); Object.entries(attrs || {}).forEach(([k, v]) => e.setAttributeNS(W, 'w:' + k, String(v))); return e; };
+    // Bausteine des Absatzes der Reihe nach: Text, Tabs, Umbrüche, Formeln (Bild oder altes Objekt)
+    const atoms = [];
+    p.querySelectorAll('*').forEach(n => {
+      if (n.namespaceURI !== W || !n.parentNode || n.parentNode.localName !== 'r') return;
+      const k = n.localName;
+      if (k === 't') atoms.push({n, kind: 't', text: n.textContent});
+      else if (k === 'tab' || k === 'ptab') atoms.push({n, kind: 'ws', text: '\t'});
+      else if (k === 'br' || k === 'cr') atoms.push({n, kind: 'ws', text: '\n'});
+      else if (k === 'drawing' || k === 'object' || k === 'pict') atoms.push({n, kind: 'obj', text: '\ufffc'});
+    });
+    const all = atoms.map(a => a.text).join('');
+    const want = '(' + num + ')';
+    const at = all.lastIndexOf(want);
+    if (at < 0 || all.slice(at + want.length).trim()) return null;
+    // Stelle der Klammer finden
+    let pos = 0, ai = -1, off = 0;
+    for (let i = 0; i < atoms.length; i++) { const L = atoms[i].text.length; if (at < pos + L) { ai = i; off = at - pos; break; } pos += L; }
+    if (ai < 0 || atoms[ai].kind !== 't') return null;
+    // Leerraum vor der Nummer entfernen, bis zur Formel oder zu sichtbarem Text
+    const a = atoms[ai];
+    const head = a.text.slice(0, off).replace(/[\s\u00a0]+$/, '');
+    let stop = !!head;
+    for (let i = ai - 1; i >= 0 && !stop; i--) {
+      const b = atoms[i];
+      if (b.kind === 'ws') { b.n.parentNode.removeChild(b.n); continue; }
+      if (b.kind === 'obj') break;
+      const t = b.text.replace(/[\s\u00a0]+$/, '');
+      b.n.textContent = t;
+      if (t) stop = true;
+    }
+    // Ein Tabulator vor der Nummer
+    a.n.textContent = a.text.slice(off);
+    a.n.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+    if (head) { const h = el('t'); h.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve'); h.textContent = head; a.n.parentNode.insertBefore(h, a.n); }
+    a.n.parentNode.insertBefore(el('tab'), a.n);
+    // Leerraum vor der ersten Formel entfernen
+    const first = atoms.findIndex(x => x.kind === 'obj');
+    if (first > 0 && atoms.slice(0, first).every(x => x.kind === 'ws' || (x.kind === 't' && !x.text.trim()))) {
+      atoms.slice(0, first).forEach(x => { if (x.kind === 'ws') { if (x.n.parentNode) x.n.parentNode.removeChild(x.n); } else x.n.textContent = ''; });
+    }
+    // Absatzeigenschaften: Einzug, linksbündig, ein rechter Tabstopp für die Nummer
+    let pPr = Array.from(p.childNodes).find(n => n.localName === 'pPr');
+    if (!pPr) { pPr = el('pPr'); p.insertBefore(pPr, p.firstChild); }
+    Array.from(pPr.childNodes).filter(n => ['tabs', 'ind', 'jc'].includes(n.localName)).forEach(n => pPr.removeChild(n));
+    const tabs = el('tabs'); tabs.appendChild(el('tab', {val: 'right', pos: Math.round(tabTw)}));
+    const put = e => {
+      const i = PPR.indexOf(e.localName);
+      const after = Array.from(pPr.childNodes).find(n => PPR.indexOf(n.localName) > i);
+      pPr.insertBefore(e, after || null);
+    };
+    put(tabs);
+    put(el('ind', {left: Math.round(leftTw), right: 0, firstLine: 0}));
+    put(el('jc', {val: 'left'}));
+    // Abschnittsangaben des Dokuments nicht mit einfügen
+    Array.from(body.childNodes).filter(n => n.localName === 'sectPr').forEach(n => body.removeChild(n));
+    return new XMLSerializer().serializeToString(doc);
+  }
+  const FeNum = {endNumber, suggest, shifts, check, split, VALID, layoutXml};
   if (typeof module !== 'undefined' && module.exports) { module.exports = FeNum; return; }
   root.FeNum = FeNum;
 
@@ -99,12 +172,12 @@
   const more = box.querySelector('.fe-num-more'), msg = box.querySelector('#fe-num-msg'), why = box.querySelector('#fe-num-why');
   try { on.checked = localStorage.getItem('fe-num-on') === '1'; shiftBox.checked = localStorage.getItem('fe-num-shift') !== '0'; } catch (e) {}
   // Einzüge aus dem Lineal (lineal.js); ohne Lineal am Rand
-  const L = () => window.FeLineal || {leftPt: () => 0, rightPt: () => 0, text: () => '', use: () => false, visible: () => false};
+  const L = () => window.FeLineal || {leftPt: () => 0, tabPt: () => 0, text: () => '', use: () => false, visible: () => false};
   const useRuler = () => L().visible() && L().use();
   function indent(para) {
     para.leftIndent = L().leftPt();
     para.firstLineIndent = 0;
-    para.rightIndent = L().rightPt();
+    para.rightIndent = 0;
     para.alignment = 'Left';
   }
   const inWord = () => typeof Word !== 'undefined' && typeof Office !== 'undefined' && Office.context && Office.context.document;
@@ -113,13 +186,37 @@
   function preview() {
     try {
       const d = q('#out').contentDocument, no = d && d.querySelector('.eq .no');
-      if (no) no.textContent = !on.disabled && on.checked && field.value.trim() ? '(' + field.value.trim() + ')' : '';
+      if (no) no.textContent = FeWord.editing() ? (editNum ? '(' + editNum + ')' : '')
+        : !on.disabled && on.checked && field.value.trim() ? '(' + field.value.trim() + ')' : '';
     } catch (e) {}
   }
-  // Immer zu sehen; wirkt nur bei neuen abgesetzten Formeln (wissenschaftlich, nicht beim Ersetzen)
+  // Immer zu sehen; wirkt nur bei neuen abgesetzten Formeln (wissenschaftlich, nicht beim Ersetzen).
+  // Bei einer geladenen Formel steht ihre vorhandene Nummer im Kästchen und in der Vorschau.
+  let editNum = null, wasEditing = false, ownChoice = false;
+  async function readEditNum() {
+    editNum = null;
+    if (!inWord()) return;
+    try {
+      await Word.run(async ctx => {
+        const para = ctx.document.getSelection().paragraphs.getFirst();
+        para.load('text');
+        await ctx.sync();
+        editNum = endNumber(para.text);
+      });
+    } catch (e) {}
+    sync();
+  }
   function sync() {
+    const ed = FeWord.editing();
+    if (ed !== wasEditing) {
+      wasEditing = ed;
+      if (ed) { ownChoice = on.checked; editNum = null; readEditNum(); }
+      else { on.checked = ownChoice; editNum = null; }
+    }
+    if (ed) on.checked = !!editNum;
     const w = mode !== 'sci' ? 'Gleichungsnummern gibt es nur bei der Darstellung „Wissenschaftlich“.'
-      : FeWord.editing() ? 'Beim Ersetzen bleibt die Nummer der Formel, wie sie ist.' : '';
+      : ed ? (editNum ? 'Diese Formel hat die Nummer (' + editNum + '). Sie bleibt beim Ersetzen erhalten.'
+        : 'Diese Formel hat keine Nummer. Eine Nummer gibt es beim Einfügen einer neuen Formel.') : '';
     if (why.textContent !== w) why.textContent = w;
     on.disabled = !!w;
     more.hidden = !on.checked || !!w;
@@ -153,6 +250,7 @@
     preview();
   }
   on.addEventListener('change', () => {
+    ownChoice = on.checked;
     try { localStorage.setItem('fe-num-on', on.checked ? '1' : '0'); } catch (e) {}
     sync();
     if (on.checked && !field.value.trim()) makeSuggestion();
@@ -236,8 +334,6 @@
     indent(para);
     return L().pPr();
   }
-  // Absatzeigenschaften für eine nummerierte Formel (eigener Absatz)
-  const pPr = () => useRuler() ? L().pPr() : '';
   // Nach dem Einfügen: Nummer für die nächste Formel vorschlagen
   function done(num) {
     const s = split(num);
@@ -249,57 +345,42 @@
   }
   // Nach dem Einfügen einer abgesetzten Formel: Einzüge wie im Lineal. Mit Nummer hat die Formel ihren
   // eigenen Absatz; ohne Nummer nur, wenn der Absatz außer der Formel nichts enthält (keine Formel im Fließtext).
-  async function afterInsert(ctx, range, numbered) {
+  async function afterInsert(ctx, range, num) {
     if (!useRuler()) return;
     const para = range.paragraphs.getFirst();
-    if (!numbered) {
-      para.load('text');
-      await ctx.sync();
-      if (para.text.replace(/[\s\ufffc]/g, '')) return;
-    }
+    if (num) { await alignNumbered(ctx, para, num); return; }
+    para.load('text');
+    await ctx.sync();
+    if (para.text.replace(/[\s\ufffc]/g, '')) return;
     indent(para);
   }
   root.FeNummer = {wanted, beforeInsert, placeUnnumbered, pPr, afterInsert, afterReplace, done};
 
-  // Formeln mit Nummer wie im Lineal setzen: Einzug links für die Formel, Einzug rechts für das Ende der Nummer.
-  // Leerraum (Tabs, Leerzeichen) zwischen Formel und Nummer wird durch einen Tabulator am rechten Einzug ersetzt.
-  const PTAB = '<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage"><pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">' +
-    '<pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships></pkg:xmlData></pkg:part>' +
-    '<pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"><pkg:xmlData>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:ptab w:relativeTo="indent" w:alignment="right" w:leader="none"/></w:r></w:p></w:body></w:document>' +
-    '</pkg:xmlData></pkg:part></pkg:package>';
+  // Formeln mit Nummer wie im Lineal setzen: Einzug links für die Formel, rechtsbündiger Tabstopp am Ende der Nummer.
+  // Der Absatz wird über sein OOXML neu geschrieben (layoutXml), denn Tabstopps kennt Office.js nicht.
   const blank = t => /^[\s\u00a0]*$/.test(t || '');
+  const TW = pt => pt * 20;
+  async function alignNumbered(ctx, p, num) {
+    const ox = p.getOoxml();
+    await ctx.sync();
+    const xml = layoutXml(ox.value, num, TW(L().leftPt()), TW(L().tabPt()));
+    if (!xml) return false;
+    p.insertOoxml(xml, 'Replace');
+    await ctx.sync();
+    // Bleibt der alte Absatz leer zurück, wird er entfernt
+    try {
+      p.load('text');
+      await ctx.sync();
+      if (!p.text.replace(/[\s\u00a0\ufffc]/g, '')) { p.delete(); await ctx.sync(); }
+    } catch (e) {}
+    return true;
+  }
   // Einen Absatz mit abgesetzter Formel wie im Lineal setzen; num: seine Nummer oder null. false, wenn die Nummer fehlt.
   async function alignPara(ctx, p, num) {
-    const hits = num ? p.search('(' + num + ')', {matchCase: true}) : null;
+    if (num) return alignNumbered(ctx, p, num);
     const pics = p.inlinePictures;
-    const tabs = p.search('^t');
-    if (hits) hits.load('items');
-    pics.load('items'); tabs.load('items');
+    pics.load('items');
     await ctx.sync();
-    if (num && !hits.items.length) return false;
-    if (num) {
-      const at = hits.items[hits.items.length - 1].getRange('Start');
-      // Am liebsten alles zwischen der letzten Formel und der Nummer, wenn dort nur Leerraum steht
-      let gap = null;
-      if (pics.items.length) {
-        const g = pics.items[pics.items.length - 1].getRange('End').expandTo(at);
-        g.load('text');
-        await ctx.sync();
-        if (blank(g.text)) gap = g;
-      }
-      // Sonst die Tabs unmittelbar vor der Nummer
-      if (!gap) {
-        const before = p.getRange('Start').expandTo(at);
-        before.load('text');
-        await ctx.sync();
-        const trail = (before.text.match(/[\t ]*$/) || [''])[0];
-        const k = (trail.match(/\t/g) || []).length;
-        if (k && tabs.items.length >= k) gap = tabs.items[tabs.items.length - k].expandTo(at);
-      }
-      if (gap) gap.insertOoxml(PTAB, 'Replace');
-      else at.insertOoxml(PTAB, 'Replace');
-    }
     // Leerraum vor der ersten Formel entfernen, damit sie beim Einzug aus dem Lineal beginnt
     if (pics.items.length) {
       const lead = p.getRange('Start').expandTo(pics.items[0].getRange('Start'));
@@ -310,8 +391,6 @@
     indent(p);
     return true;
   }
-  // Alle abgesetzten Formeln: Absätze mit Nummer am Ende und Absätze, in denen nur eine Formel steht.
-  // progress(i, n) meldet den Fortschritt.
   async function alignAll(progress) {
     let done = 0, numbered = 0, skipped = [];
     await Word.run(async ctx => {
@@ -346,16 +425,18 @@
     if (rest.replace(/[\s\ufffc]/g, '')) return;
     await alignPara(ctx, p, num);
   }
+  // Absatzeigenschaften für eine neue nummerierte Formel; ohne Lineal steht die Nummer am rechten Rand
+  function pPr() { return useRuler() ? L().pPr() : ''; }
   // Knopf unter dem Lineal (lineal.js): alle Formeln ausrichten, mit Fortschrittsbalken
-  const alignBtn = q('#fe-align'), bar = q('#fe-align-bar'), amsg = q('#fe-align-msg');
+  const alignBtn = q('#fe-align'), bar = q('#fe-align-bar'), fill = bar && bar.firstElementChild, amsg = q('#fe-align-msg');
   if (alignBtn) alignBtn.addEventListener('click', async () => {
     if (!inWord()) { amsg.textContent = 'Das geht nur, wenn der Editor in Word geöffnet ist.'; return; }
     alignBtn.disabled = true;
     amsg.textContent = 'Formeln werden ausgerichtet …';
-    bar.value = 0; bar.max = 1; bar.hidden = false;
+    fill.style.width = '0%'; bar.hidden = false;
     try {
       const r = await alignAll((i, n) => {
-        bar.max = Math.max(1, n); bar.value = i;
+        fill.style.width = (n ? Math.round(100 * i / n) : 100) + '%';
         amsg.textContent = 'Formeln werden ausgerichtet: ' + i + ' von ' + n + ' …';
       });
       const f = n => n === 1 ? '1 Formel' : n + ' Formeln';

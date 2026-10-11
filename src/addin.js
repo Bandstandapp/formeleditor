@@ -121,7 +121,7 @@
   }
 
   // Ein Absatz mit einem einzigen Bild; Word übernimmt es beim Einfügen in die laufende Zeile.
-  // num: Gleichungsnummer wie „4.13“; sie steht rechtsbündig am rechten Einzug des Absatzes (absoluter Tabulator, ohne Tabstopps)
+  // num: Gleichungsnummer wie „4.13“; sie steht rechtsbündig am Tabstopp aus dem Lineal, ohne Lineal am rechten Rand
   // pPr: Absatzeigenschaften (Einzüge aus dem Lineal) für eine Formel im eigenen Absatz, sonst leer
   function ooxml(r, meta, num, pPr) {
     const emu = pt => Math.round(pt * 12700);
@@ -153,7 +153,9 @@
       '<a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
       '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
       '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>' +
-      (num ? '<w:r><w:ptab w:relativeTo="indent" w:alignment="right" w:leader="none"/><w:t xml:space="preserve">(' + xmlEsc(num) + ')</w:t></w:r>' : '') +
+      // Mit Lineal: Tabulator zum rechten Tabstopp aus pPr; sonst absoluter Tabulator am rechten Rand
+      (num ? '<w:r>' + (pPr ? '<w:tab/>' : '<w:ptab w:relativeTo="margin" w:alignment="right" w:leader="none"/>') +
+        '<w:t xml:space="preserve">(' + xmlEsc(num) + ')</w:t></w:r>' : '') +
       '</w:p></w:body></w:document></pkg:xmlData></pkg:part>' +
       '<pkg:part pkg:name="/word/media/formel.png" pkg:contentType="image/png" pkg:compression="store"><pkg:binaryData>' + png + '</pkg:binaryData></pkg:part>' +
       '<pkg:part pkg:name="/word/media/formel.svg" pkg:contentType="image/svg+xml" pkg:compression="store"><pkg:binaryData>' + svg + '</pkg:binaryData></pkg:part>' +
@@ -283,12 +285,12 @@
         }
         else if (num) {
           const at = await FeNummer.beforeInsert(ctx, num);
-          await FeNummer.afterInsert(ctx, at.insertOoxml(ooxml(r, meta, num, FeNummer.pPr()), 'Replace'), true);
+          await FeNummer.afterInsert(ctx, at.insertOoxml(ooxml(r, meta, num, FeNummer.pPr()), 'Replace'), num);
         }
         else {
           const pPr = window.FeNummer ? await FeNummer.placeUnnumbered(ctx) : '';
           const at = ctx.document.getSelection().insertOoxml(ooxml(r, meta, null, pPr), 'Replace');
-          if (window.FeNummer) await FeNummer.afterInsert(ctx, at, false);
+          if (window.FeNummer) await FeNummer.afterInsert(ctx, at, null);
         }
         await ctx.sync();
       });
