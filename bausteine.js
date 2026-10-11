@@ -64,10 +64,11 @@
 .fe-recent .tool .g { font-size: 1.15rem; min-height: 1.3rem; }
 .fe-recent .tool .n { display: none; }
 .fe-hits-note { margin: 0; font-size: .9rem; color: var(--muted); }
-body.addin .tabs.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-body.addin .tabs .tab { padding: 7px 4px; font-size: .95rem; white-space: nowrap; min-width: 0; }
+body.addin .tabs.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
+body.addin .tabs .tab { padding: 7px 4px; font-size: .95rem; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 body.addin .tabs #tab-meine { grid-column: span 2; }
-body.fe-searching .tabs .tab[aria-selected="true"] { background: transparent; color: var(--fg); border-color: var(--line); }
+@media (min-width: 560px) { body.addin .tabs.tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); } body.addin .tabs #tab-meine { grid-column: auto; } }
+body.fe-searching .tabs .tab[aria-selected="true"] { background: transparent; box-shadow: none; font-weight: 500; }
 #fe-search::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 .fe-mine { display: grid; gap: 8px; }
 .fe-mine-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }

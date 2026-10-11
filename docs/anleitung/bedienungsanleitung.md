@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.0
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.1
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -117,7 +117,9 @@ Bei **Wissenschaftlich** steht unter den Darstellungen das Kästchen **Gleichung
 Beim Einfügen steht die Formel in einem eigenen Absatz und die Nummer rechtsbündig dahinter. Gibt es (4.13) schon und ist **Folgende Nummern weiterzählen** angekreuzt, macht der Editor aus der alten (4.13) eine (4.14), aus (4.14) eine (4.15) und so weiter, auch an allen Stellen im Text, die darauf verweisen.
 
 ![](img/21-nummer.png)
-Caption: Mehrzeilige Formel mit Gleichungsnummer
+Caption: Mehrzeilige Formel mit Gleichungsnummer, 5 mm vom rechten Rand
+
+Unter **Abstand zum rechten Rand** steht, wie viele Millimeter die Nummer vom rechten Rand nach links eingerückt wird. Bei 0 steht sie genau am Rand. Der Wert gilt für jede neue Nummer. **Alle Nummern im Dokument so ausrichten** setzt auch alle vorhandenen Nummern rechtsbündig mit diesem Abstand, sodass sie untereinanderstehen.
 
 > Gut zu wissen. Die Nummer ist normaler Text in Word. Sie lässt sich dort auch von Hand ändern.
 
