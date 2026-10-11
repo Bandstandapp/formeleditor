@@ -26,6 +26,9 @@ body.addin .tabs { flex-wrap: nowrap; gap: 6px; }
 body.addin .tab { flex: 1 1 0; padding: 8px 6px; font-size: 1rem; text-align: center; }
 body.addin #mfwrap math-field { min-height: 80px; padding-right: 4px; }
 body.addin #mfwrap math-field { position: relative; }
+body.addin #mfwrap math-field[data-state="saved"] { border: 3px solid #2e8540; }
+body.addin #mfwrap math-field[data-state="changed"] { border: 3px solid #e07b00; }
+body.addin #mfwrap math-field[data-state]:focus-within { outline: none; }
 body.addin #mfwrap math-field::part(content) { padding-right: 34px; }
 body.addin #mfwrap math-field::part(virtual-keyboard-toggle) { position: absolute; right: 2px; top: 6px; }
 body.addin #mfwrap math-field::part(menu-toggle) { position: absolute; right: 2px; bottom: 6px; }

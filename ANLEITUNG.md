@@ -43,7 +43,7 @@ Der Editor hat oben zwei Reiter. **Formel bearbeiten** ist beim Öffnen gewählt
 - **Neue Formel:** Den Cursor im Text an die gewünschte Stelle setzen. Die Formel aus den Bausteinen zusammensetzen oder tippen und auf **In Word einfügen** klicken. Den Knopf gibt es unter der Eingabe und unter der Vorschau.
 - **Fett und kursiv:** Zeichen in der Eingabe markieren und auf **F** (fett) oder **K** (kursiv bzw. aufrecht) klicken.
 - **Aussehen:** In der Vorschau zwischen **Wissenschaftlich** (Brüche übereinander) und **Einzeilig** (Brüche mit Schrägstrich, für den Fließtext) umschalten und Schrift und Schriftgröße wählen. Der Zoom vergrößert nur die Vorschau.
-- **Formel ändern:** Die Formel im Dokument einmal anklicken. Sie erscheint in der Eingabe, und der große Knopf heißt **Formel in Word ersetzen**. Nach dem Ändern darauf klicken.
+- **Formel ändern:** Die Formel im Dokument einmal anklicken. Sie erscheint in der Eingabe, und der große Knopf heißt **Formel in Word ersetzen**. Ein grüner Rahmen um die Eingabe zeigt: Die Formel ist so wie im Dokument. Nach einer Änderung wird der Rahmen orange, die Änderung ist also noch nicht in Word. Nach dem Klick auf den Knopf ist er wieder grün.
 - **Neu anfangen:** **Neue Formel** leert die Eingabe. Danach fügt der große Knopf wieder neu ein, statt zu ersetzen.
 
 Die Formel steckt unsichtbar im Alternativtext des Bildes. Deshalb lässt sie sich auch nach Wochen noch bearbeiten, solange niemand diesen Alternativtext von Hand ändert.
