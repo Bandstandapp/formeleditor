@@ -24,8 +24,8 @@ body.addin header, body.addin section[aria-label="Beispiele"], body.addin #fallb
 body.addin .hint:has(#copypng) { display: none !important; }
 body.addin .wrap { padding: 8px 8px 24px; gap: 10px; }
 body.addin .panel { padding: 10px; gap: 10px; }
-body.addin section[aria-label="Eingabe"] { order: 1; }
-body.addin section[aria-label="Bausteine"] { order: 2; }
+body.addin section[aria-label="Bausteine"] { order: 1; }
+body.addin section[aria-label="Eingabe"] { order: 2; }
 body.addin section[aria-label="Ergebnis"] { order: 3; }
 body.addin section[aria-label="Darstellung"] { order: 4; }
 body.addin .tools { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; max-height: 38vh; overflow-y: auto; padding-right: 2px; }
@@ -48,8 +48,8 @@ body.addin #fonts small { display: none; }
             '</head>\n<body class="addin">\n' + body + css +
             '\n<script>window.FE_VERSION = ' + json.dumps(ver, ensure_ascii=False) + ';</script>'
             '\n<script src="eqn3.js?v=' + v + '"></script>\n<script src="convert.js?v=' + v + '"></script>'
-            '\n<script src="addin.js?v=' + v + '"></script>\n<script src="bulk.js?v=' + v + '"></script>'
-            '\n<script src="layout.js?v=' + v + '"></script>'
+            '\n<script src="addin.js?v=' + v + '"></script>\n<script src="layout.js?v=' + v + '"></script>'
+            '\n<script src="bulk.js?v=' + v + '"></script>'
             '\n<script src="setup.js?v=' + v + '"></script>\n</body>\n</html>\n')
     open(os.path.join(REPO, 'taskpane.html'), 'w').write(page)
     for f in ('addin.js', 'eqn3.js', 'convert.js', 'bulk.js', 'layout.js', 'setup.js', 'version.json'):

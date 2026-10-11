@@ -163,6 +163,8 @@
 
   const sayStatus = (text, ok) => { say(status, text, ok); say(status2, text, ok); };
 
+  window.FeWord = {ooxml};   // für bulk.js (Formeln im Dokument neu formatieren)
+
   async function insertIntoWord() {
     const src = mf ? mf.getValue('latex') : '';
     if (!src.trim()) { sayStatus('Erst eine Formel eingeben.'); return; }
