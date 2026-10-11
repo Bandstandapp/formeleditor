@@ -16,7 +16,7 @@ body.addin section[aria-label="Ergebnis"] { order: 3; }
 body.addin section[aria-label="Dokument"] { order: 4; }
 body.addin .label { position: relative; display: flex; align-items: center; gap: 6px; }
 .info { all: unset; box-sizing: border-box; display: inline-grid; place-items: center; width: 1.25em; height: 1.25em; border: 1.5px solid currentColor; border-radius: 50%;
-  font: italic 700 .8rem/1 Georgia, "Times New Roman", serif; text-transform: none; color: var(--accent); cursor: help; flex: none; }
+  font: italic 700 .8rem/1 var(--f-ui); text-transform: none; color: var(--accent); cursor: help; flex: none; }
 .info:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .info::after { content: attr(data-tip); display: none; position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px);
   background: var(--fg); color: var(--surface); font: 400 .92rem/1.4 var(--f-ui); letter-spacing: 0; text-transform: none;
@@ -33,7 +33,14 @@ body.addin .stylebar { display: flex; gap: 6px; }
 body.addin .stylebar button { font: inherit; width: 40px; height: 36px; border-radius: 8px; border: 2px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; font-size: 1.1rem; }
 body.addin .stylebar button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
 body.addin .stylebar .b { font-weight: 800; }
-body.addin .stylebar .k { font-style: italic; font-family: Georgia, "Times New Roman", serif; }
+body.addin .stylebar .k { font-style: italic; }
+body.addin h1, body.addin h2, body.addin h3 { font-family: var(--f-ui) !important; font-weight: 700; }
+.fe-maintabs { order: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 2px solid var(--accent); border-radius: var(--r); overflow: hidden; }
+.fe-maintabs button { font: inherit; font-weight: 700; font-size: 1rem; padding: 10px 6px; border: 0; background: var(--surface); color: var(--accent); cursor: pointer; }
+.fe-maintabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); }
+.fe-maintabs button:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+body.addin:not(.tab-doc) section[aria-label="Dokument"] { display: none !important; }
+body.addin.tab-doc section[aria-label="Bausteine"], body.addin.tab-doc section[aria-label="Eingabe"], body.addin.tab-doc section[aria-label="Ergebnis"] { display: none !important; }
 body.addin .editrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 body.addin .editrow .btn { padding: 6px 2px; font-size: .85rem; white-space: nowrap; }
 body.addin button.btn.primary { width: 100%; font-size: 1.15rem; padding: 12px 14px; }
@@ -62,6 +69,26 @@ body.addin .paper iframe { min-height: 0; }`;
     return lbl;
   }
   window.FeHeading = heading;
+  // Info-Symbol an eine vorhandene Zeile hängen
+  window.FeInfo = (el, tip) => {
+    const i = document.createElement('button');
+    i.type = 'button'; i.className = 'info'; i.textContent = 'i';
+    i.setAttribute('aria-label', 'Info: ' + tip); i.dataset.tip = tip;
+    el.style.position = 'relative'; el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.gap = '6px';
+    el.appendChild(i);
+  };
+
+  // Zwei Reiter: „Formel bearbeiten“ (Standard) und „Alles bearbeiten“
+  const tabs = document.createElement('div');
+  tabs.className = 'fe-maintabs'; tabs.setAttribute('role', 'tablist');
+  tabs.innerHTML = '<button type="button" role="tab" data-t="formel" aria-selected="true">Formel bearbeiten</button>' +
+                   '<button type="button" role="tab" data-t="doc" aria-selected="false">Alles bearbeiten</button>';
+  (q('.wrap') || document.body).prepend(tabs);
+  tabs.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    tabs.querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b));
+    document.body.classList.toggle('tab-doc', b.dataset.t === 'doc');
+    window.scrollTo({top: 0});
+  }));
 
   heading(bausteine, 'Bausteine', 'Ein Klick setzt den Baustein an der Stelle des blinkenden Strichs in die Eingabe. Leere Kästchen, etwa Zähler und Nenner, der Reihe nach ausfüllen.');
   heading(eingabe, 'Eingabe',

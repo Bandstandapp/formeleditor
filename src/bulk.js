@@ -54,7 +54,7 @@
     'Mit den Häkchen bekommen alle Formeln die Standard-Schrift bzw. -Größe. Die Darstellung (wissenschaftlich oder einzeilig) bleibt bei jeder Formel, wie sie ist.\n\n' +
     'Analysieren: zählt die Formeln nach Format, Schrift und Größe. Ein Klick auf eine Zeile sucht genau diese Formeln.\n\n' +
     'Suchen: markiert passende Formeln im geöffneten Dokument türkis. Mit Zurück und Weiter springt man von Formel zu Formel und kann sie einzeln oder alle auf einmal im Standard formatieren.';
-  if (window.FeHeading) window.FeHeading(sec, 'Ganzes Dokument bearbeiten', tip);
+  if (window.FeInfo) window.FeInfo(sec.querySelector('.fe-sub'), tip);   // Überschrift steht schon auf dem Reiter
 
   const css = document.createElement('style');
   css.textContent = `

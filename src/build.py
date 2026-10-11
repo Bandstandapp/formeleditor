@@ -43,7 +43,7 @@ body.addin #fonts small { display: none; }
     v = ver['version']
     page = ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
-            '<title>Formeleditor</title>\n'
+            '<title>Papas Formeleditor</title>\n'
             '<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>\n'
             '</head>\n<body class="addin">\n' + body + css +
             '\n<script>window.FE_VERSION = ' + json.dumps(ver, ensure_ascii=False) + ';</script>'

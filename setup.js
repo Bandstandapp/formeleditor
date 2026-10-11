@@ -13,13 +13,16 @@
 
   const css = document.createElement('style');
   css.textContent = `
-.fe-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; color: var(--muted); }
-.fe-bar .btn { padding: 4px 10px; font-size: .9rem; }
+.fe-bar { order: 99; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; color: var(--muted); padding: 2px 4px; }
+.fe-gear { all: unset; cursor: pointer; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); }
+.fe-gear:hover { color: var(--accent); background: var(--accent-soft); }
+.fe-gear:focus-visible { outline: 3px solid var(--focus); }
+.fe-gear svg { width: 22px; height: 22px; }
 .fe-news { background: var(--accent-soft); border: 2px solid var(--accent); border-radius: var(--r); padding: 8px 10px; display: grid; gap: 6px; }
 .fe-news[hidden], .fe-dlg[hidden] { display: none; }
 .fe-dlg { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.45); display: grid; place-items: start center; padding: 12px; overflow-y: auto; }
 .fe-box { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; width: 100%; max-width: 420px; display: grid; gap: 10px; }
-.fe-box h2 { font-family: var(--f-head); font-size: var(--s-3); margin: 0; }
+.fe-box h2 { font-family: var(--f-ui); font-weight: 700; font-size: var(--s-2); margin: 0; }
 .fe-box table { border-collapse: collapse; width: 100%; }
 .fe-box td { padding: 4px 0; vertical-align: top; }
 .fe-box td:first-child { color: var(--muted); padding-right: 10px; white-space: nowrap; }
@@ -28,7 +31,10 @@
 
   const bar = document.createElement('div');
   bar.className = 'fe-bar';
-  bar.innerHTML = '<span>Formeleditor, Version ' + local.version + '</span><button class="btn" type="button">Einrichtung</button>';
+  bar.innerHTML = '<span>Papas Formeleditor · Version ' + local.version + '</span>' +
+    '<button class="fe-gear" type="button" title="Einrichtung" aria-label="Einrichtung">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>';
   const news = document.createElement('div');
   news.className = 'fe-news'; news.hidden = true; news.setAttribute('role', 'status');
   const dlg = document.createElement('div');
@@ -45,6 +51,9 @@
     <button class="btn" type="button" id="fe-no">Nein, später</button>
   </div>
   <div class="row">
+    <button class="btn" type="button" id="fe-docs">Dokumentation herunterladen</button>
+  </div>
+  <div class="row">
     <button class="btn" type="button" id="fe-check">Nach Updates suchen</button>
     <button class="btn" type="button" id="fe-reload">Editor neu laden</button>
     <button class="btn" type="button" id="fe-close">Schließen</button>
@@ -52,7 +61,7 @@
 </div>`;
   const wrap = document.querySelector('.wrap') || document.body;
   wrap.prepend(news);
-  wrap.prepend(bar);
+  wrap.appendChild(bar);              // Fußzeile: Name, Version, Zahnrad
   document.body.appendChild(dlg);
   const $ = id => dlg.querySelector('#' + id);
   // Technischer Quelltext gehört nicht in die Hauptansicht
@@ -106,6 +115,13 @@
 
   bar.querySelector('button').addEventListener('click', open);
   $('fe-close').addEventListener('click', close);
+  // Dokumentation liegt im Repository und wird über GitHub Pages ausgeliefert; der Mac lädt sie im Browser herunter
+  $('fe-docs').addEventListener('click', () => {
+    const url = new URL('docs/Bedienungsanleitung.docx', location.href).toString().split('?')[0];
+    try { Office.context.ui.openBrowserWindow(url); }
+    catch (e) { window.open(url, '_blank'); }
+    $('fe-msg').textContent = 'Die Dokumentation wird im Browser geöffnet und im Ordner „Downloads“ gespeichert.';
+  });
   $('fe-no').addEventListener('click', () => { $('fe-ask').hidden = true; close(); });
   $('fe-yes').addEventListener('click', update);
   $('fe-reload').addEventListener('click', update);

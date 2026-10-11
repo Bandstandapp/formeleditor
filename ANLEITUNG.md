@@ -1,6 +1,6 @@
-# Formeleditor in Word einrichten (Mac)
+# Papas Formeleditor: Einrichtung und Bedienung (Mac)
 
-Diese Anleitung richtet den Formeleditor als Add-in in Word auf dem Mac ein. Sie ist so geschrieben, dass Jens sie über TeamViewer auf Papas Rechner durchgehen kann. Die Einrichtung dauert ein paar Minuten und muss nur einmal gemacht werden. Danach steht der Editor in Word im Reiter „Start“ als Knopf „Formeleditor“ bereit.
+Diese Anleitung richtet den Formeleditor als Add-in in Word auf dem Mac ein. Sie ist so geschrieben, dass Jens sie über TeamViewer auf Papas Rechner durchgehen kann. Die Einrichtung dauert ein paar Minuten und muss nur einmal gemacht werden. Danach steht der Editor in Word im Reiter „Start“ als Knopf „Papas Formeleditor“ bereit.
 
 Der Editor selbst liegt im Internet auf GitHub Pages. Word lädt ihn bei jedem Öffnen von dort. Verbesserungen kommen deshalb ohne neue Installation an; manchmal reicht es, Word einmal zu beenden und neu zu starten.
 
@@ -31,33 +31,43 @@ Die Zeile legt den Ordner an, falls er fehlt, und lädt die kleine Beschreibungs
 
 1. Word starten und ein Dokument öffnen (ein neues, leeres reicht).
 2. Im Reiter **Start** ganz rechts auf **Add-ins** klicken. In manchen Word-Versionen heißt der Weg **Einfügen** → **Add-ins** → **Meine Add-ins**.
-3. Im Fenster, das sich öffnet, erscheint unter **Entwickler-Add-ins** (englisch „Developer Add-ins“) der Eintrag **Formeleditor**. Ihn einmal anklicken.
-4. Rechts öffnet sich der Formeleditor als Seitenleiste. Im Reiter **Start** gibt es von nun an außerdem den Knopf **Formeleditor**.
+3. Im Fenster, das sich öffnet, erscheint unter **Entwickler-Add-ins** (englisch „Developer Add-ins“) der Eintrag **Papas Formeleditor**. Ihn einmal anklicken.
+4. Rechts öffnet sich der Formeleditor als Seitenleiste. Im Reiter **Start** gibt es von nun an außerdem den Knopf **Papas Formeleditor**.
 
 Falls der Eintrag nicht erscheint, Word mit ⌘Q ganz beenden und neu starten. Hilft das nicht, ist die Datei aus Schritt 1 nicht im richtigen Ordner gelandet.
 
 ## So wird der Editor benutzt
 
-- **Neue Formel:** Den Cursor im Text an die gewünschte Stelle setzen. Im Editor die Formel aus den Bausteinen zusammensetzen oder tippen, Darstellung, Schrift und Schriftgröße wählen und auf **In Word einfügen** klicken.
-- **Formel ändern:** Die Formel im Dokument einmal anklicken. Sie erscheint automatisch im Editor, und der große Knopf heißt jetzt **Formel in Word ersetzen**. Nach dem Ändern darauf klicken, dann wird die alte Formel an derselben Stelle ausgetauscht. Falls sie nicht von selbst erscheint, hilft der Knopf **Markierte Formel bearbeiten**.
-- **Neu anfangen:** **Neue Formel** leert das Eingabefeld. Danach fügt der große Knopf wieder neu ein, statt etwas zu ersetzen.
+Der Editor hat oben zwei Reiter. **Formel bearbeiten** ist beim Öffnen gewählt und enthält die Kacheln Bausteine, Eingabe und Vorschau. **Alles bearbeiten** enthält die Werkzeuge für das ganze Dokument. Hinter jeder Überschrift erklärt ein kleines **i** die Kachel, sobald man mit der Maus darauf zeigt.
+
+- **Neue Formel:** Den Cursor im Text an die gewünschte Stelle setzen. Die Formel aus den Bausteinen zusammensetzen oder tippen und auf **In Word einfügen** klicken. Den Knopf gibt es unter der Eingabe und unter der Vorschau.
+- **Fett und kursiv:** Zeichen in der Eingabe markieren und auf **F** (fett) oder **K** (kursiv bzw. aufrecht) klicken.
+- **Aussehen:** In der Vorschau zwischen **Wissenschaftlich** (Brüche übereinander) und **Einzeilig** (Brüche mit Schrägstrich, für den Fließtext) umschalten und Schrift und Schriftgröße wählen. Der Zoom vergrößert nur die Vorschau.
+- **Formel ändern:** Die Formel im Dokument einmal anklicken. Sie erscheint in der Eingabe, und der große Knopf heißt **Formel in Word ersetzen**. Nach dem Ändern darauf klicken.
+- **Neu anfangen:** **Neue Formel** leert die Eingabe. Danach fügt der große Knopf wieder neu ein, statt zu ersetzen.
 
 Die Formel steckt unsichtbar im Alternativtext des Bildes. Deshalb lässt sie sich auch nach Wochen noch bearbeiten, solange niemand diesen Alternativtext von Hand ändert.
+
+## Alles bearbeiten
+
+- **Standard für dieses Dokument:** Schrift und Schriftgröße, die beim Konvertieren und Formatieren verwendet werden.
+- **Alle Formeln konvertieren:** wandelt alte Formeln aus dem Formel-Editor 3.0 ins neue Format um. Mit **Schriftart übernehmen** und **Schriftgröße übernehmen** bekommen alle Formeln den Standard. Die Darstellung (wissenschaftlich oder einzeilig) bleibt bei jeder Formel erhalten. Das Ergebnis öffnet sich als neues Dokument, das man mit „Speichern unter …“ sichert; das Original bleibt unverändert. Eine Übersicht zeigt danach Ausgangsformate, konvertierte Formeln und Probleme. Problemfälle sind gelb markiert und müssen neu eingegeben werden.
+- **Formeln im Dokument analysieren:** zählt die Formeln nach Format, Schrift und Schriftgröße. Ein Klick auf eine Zeile sucht genau diese Formeln.
+- **Formeln suchen:** markiert passende Formeln im Dokument türkis. Mit **Zurück** und **Weiter** springt man von Formel zu Formel, formatiert sie einzeln oder alle auf einmal im Standard und entfernt am Ende die Markierungen.
 
 ## Gut zu wissen
 
 - Die Formeln sind Vektorgrafiken. Sie bleiben beim Vergrößern und im Druck scharf.
 - Für das Einfügen braucht der Editor Internet, weil er die Schriften für den Formelsatz aus dem Netz lädt. Bereits eingefügte Formeln funktionieren im Dokument auch ohne Internet.
-- Alte Formeln aus dem Formel-Editor 3.0 (in Dokumenten, die von .doc nach .docx umgewandelt wurden) lassen sich genauso anklicken. Der Editor übernimmt sie, und „Formel in Word ersetzen“ speichert sie im neuen Format.
-- **Alle Formeln auf einmal:** Ganz unten im Editor wandelt „Alle Formeln in neues Format umwandeln“ alle alten Formeln des geöffneten Dokuments um. Das Ergebnis öffnet sich als neues Dokument, das man mit „Speichern unter …“ sichert; das Original bleibt unverändert. Eine Übersicht zeigt danach, welche Formate gefunden und wie viele Formeln umgewandelt wurden. Formeln, die nicht umgewandelt werden konnten, sind im neuen Dokument gelb markiert und müssen von Hand neu eingegeben werden.
 
 ## Version und Aktualisierung
 
-Oben im Editor steht die laufende Version, zum Beispiel „Formeleditor, Version 1.1.0“. Daneben öffnet der Knopf **Einrichtung** ein Fenster, das diese Version mit der aktuellen Version auf GitHub vergleicht.
+Unten im Editor stehen Name und Version, zum Beispiel „Papas Formeleditor · Version 1.4.0“. Das **Zahnrad** daneben öffnet die Einrichtung. Sie vergleicht diese Version mit der aktuellen Version auf GitHub und bietet die Dokumentation zum Herunterladen an.
 
 - Gibt es eine neuere Version, erscheint beim Start oben ein blauer Hinweis. In der Einrichtung fragt der Editor dann „Jetzt aktualisieren?“. Mit **Ja, jetzt aktualisieren** lädt er sich neu und holt dabei die neuen Dateien von GitHub. Eine gerade eingegebene, noch nicht eingefügte Formel geht dabei verloren.
 - **Editor neu laden** lädt den Editor auch ohne neue Version frisch von GitHub.
-- Die Einrichtungsdatei aus Schritt 1 muss für ein Update nicht neu geladen werden.
+- **Dokumentation herunterladen** öffnet diese Anleitung als Word-Datei im Browser.
+- Die Einrichtungsdatei aus Schritt 1 muss für ein Update nicht neu geladen werden. Nur wenn sich der Name des Knopfs im Reiter Start ändern soll, Schritt 1 einmal wiederholen.
 
 Zeigt der Editor gar keine Versionsnummer an, läuft noch eine ältere Fassung aus dem Zwischenspeicher von Word. Dann Word mit ⌘Q beenden und neu starten. Hilft das nicht, bei beendetem Word diese Zeile im Terminal ausführen und Word wieder starten:
 
