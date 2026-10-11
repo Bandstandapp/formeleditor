@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.1
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.2
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -116,10 +116,19 @@ Bei **Wissenschaftlich** steht unter den Darstellungen das Kästchen **Gleichung
 
 Beim Einfügen steht die Formel in einem eigenen Absatz und die Nummer rechtsbündig dahinter. Gibt es (4.13) schon und ist **Folgende Nummern weiterzählen** angekreuzt, macht der Editor aus der alten (4.13) eine (4.14), aus (4.14) eine (4.15) und so weiter, auch an allen Stellen im Text, die darauf verweisen.
 
-![](img/21-nummer.png)
-Caption: Mehrzeilige Formel mit Gleichungsnummer, 5 mm vom rechten Rand
+### Das Lineal
 
-Unter **Abstand zum rechten Rand** steht, wie viele Millimeter die Nummer vom rechten Rand nach links eingerückt wird. Bei 0 steht sie genau am Rand. Der Wert gilt für jede neue Nummer. **Alle Nummern im Dokument so ausrichten** setzt auch alle vorhandenen Nummern rechtsbündig mit diesem Abstand, sodass sie untereinanderstehen.
+Oben in der Vorschau steht ein Lineal wie in Word. Es zeigt die Seite in cm, die grauen Streifen links und rechts sind die Seitenränder des Dokuments. Zwei kleine Dreiecke darunter lassen sich mit der Maus verschieben:
+
+- Das **blaue Dreieck** legt fest, wo die Formel beginnt, gemessen vom linken Rand.
+- Das **orange Dreieck** legt fest, wo die Gleichungsnummer endet. Die Nummer steht rechtsbündig davor.
+
+Darunter stehen beide Werte in cm. Man kann sie dort auch eintippen. Die Werte gelten für jede neue abgesetzte Formel.
+
+![](img/21-nummer.png)
+Caption: Lineal mit Formel ab 2 cm und Nummer bis 15 cm
+
+**Alle Formeln und Nummern im Dokument wie im Lineal ausrichten** setzt auch alle vorhandenen nummerierten Formeln so, dass Formeln und Nummern genau untereinanderstehen. Am besten vorher eine Kopie des Dokuments speichern.
 
 > Gut zu wissen. Die Nummer ist normaler Text in Word. Sie lässt sich dort auch von Hand ändern.
 

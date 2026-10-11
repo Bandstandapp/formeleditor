@@ -276,8 +276,11 @@
         const f = current ? await selectedFormula(ctx) : null;
         if (f && f.kind === 'new') { f.pic.getRange('Whole').insertOoxml(xml, 'Replace'); replaced = true; }
         else if (f) { f.range.insertOoxml(xml, 'Replace'); replaced = true; }
-        else if (num) { const at = await FeNummer.beforeInsert(ctx, num); FeNummer.afterInsert(at.insertOoxml(xml, 'Replace')); }
-        else ctx.document.getSelection().insertOoxml(xml, 'Replace');
+        else if (num) { const at = await FeNummer.beforeInsert(ctx, num); await FeNummer.afterInsert(ctx, at.insertOoxml(xml, 'Replace'), true); }
+        else {
+          const at = ctx.document.getSelection().insertOoxml(xml, 'Replace');
+          if (window.FeNummer) await FeNummer.afterInsert(ctx, at, false);
+        }
         await ctx.sync();
       });
       if (num) numText = FeNummer.done(num);
