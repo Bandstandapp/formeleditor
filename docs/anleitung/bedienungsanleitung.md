@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.2
+: Bedienungsanleitung für Word auf dem Mac, Version 1.7.3
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -124,6 +124,8 @@ Oben in der Vorschau steht ein Lineal wie in Word. Es zeigt die Seite in cm, die
 - Das **orange Dreieck** legt fest, wo die Gleichungsnummer endet. Die Nummer steht rechtsbündig davor.
 
 Darunter stehen beide Werte in cm. Man kann sie dort auch eintippen. Die Werte gelten für jede neue abgesetzte Formel.
+
+Das Lineal erscheint bei der Darstellung **Wissenschaftlich**, auch wenn eine vorhandene Formel zum Ändern geladen ist. Diese bleibt beim Ersetzen an ihrer Stelle. Erst wenn man ein Dreieck verschiebt, rückt sie beim Ersetzen dorthin.
 
 ![](img/21-nummer.png)
 Caption: Lineal mit Formel ab 2 cm und Nummer bis 15 cm

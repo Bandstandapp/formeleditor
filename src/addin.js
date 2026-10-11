@@ -274,8 +274,11 @@
       let replaced = false, numText = '';
       await Word.run(async ctx => {
         const f = current ? await selectedFormula(ctx) : null;
-        if (f && f.kind === 'new') { f.pic.getRange('Whole').insertOoxml(xml, 'Replace'); replaced = true; }
-        else if (f) { f.range.insertOoxml(xml, 'Replace'); replaced = true; }
+        if (f) {
+          const at = f.kind === 'new' ? f.pic.getRange('Whole').insertOoxml(xml, 'Replace') : f.range.insertOoxml(xml, 'Replace');
+          replaced = true;
+          if (window.FeNummer) await FeNummer.afterReplace(ctx, at);
+        }
         else if (num) { const at = await FeNummer.beforeInsert(ctx, num); await FeNummer.afterInsert(ctx, at.insertOoxml(xml, 'Replace'), true); }
         else {
           const at = ctx.document.getSelection().insertOoxml(xml, 'Replace');
