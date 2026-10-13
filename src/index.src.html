@@ -199,7 +199,7 @@ details code { display: block; white-space: pre-wrap; word-break: break-all; fon
 const SAMPLES = /*@@SAMPLES@@*/;
 const FONTS = [
   {id: 'stix2', name: 'STIX Two', note: 'passt zu Times New Roman'},
-  {id: 'termes', name: 'Termes', note: 'Times-ähnlich, zart'},
+  {id: 'termes', name: 'Termes', note: 'wie MathType und der alte Formel-Editor (Times)'},
   {id: 'newcm', name: 'Computer Modern', note: 'klassischer LaTeX-Look'},
   {id: 'pagella', name: 'Pagella', note: 'Palatino-ähnlich'},
   {id: 'schola', name: 'Schola', note: 'Schulbuch-Look'},
@@ -586,7 +586,7 @@ function loadMeta(m) {
   if (FONTS.some(f => f.id === m.font)) { font = m.font; try { localStorage.setItem('fe-font', font); } catch (e) {} }
   if (m.pt) sizePt = +m.pt;
   syncSeg();
-  mf.setValue(m.tex, {silenceNotifications: true});
+  mf.setValue(window.Eqn3 ? Eqn3.clean(m.tex) : m.tex, {silenceNotifications: true});
   show(); mf.focus();
   msg.classList.add('ok');
   msg.textContent = 'Formel aus Word übernommen. Nach dem Ändern „Formel kopieren“ drücken und in Word über die alte Formel einfügen (sie ist dort noch markiert, wenn man nichts anderes anklickt).';

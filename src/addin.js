@@ -206,11 +206,17 @@
       const m = findMeta(null, (p.altTextDescription || '') + ' ' + (p.altTextTitle || ''));
       if (m) return {kind: 'new', pic: p, meta: m};
     }
-    // Nur kurze Markierungen prüfen: ein angeklicktes Formelobjekt hat (fast) keinen Text
-    if (sel.text.replace(/\s/g, '').length > 2) return null;
+    // Nur kurze Markierungen prüfen: ein angeklicktes Formelobjekt hat (fast) keinen Text,
+    // eine ganz markierte Word-Formel nur ihre eigenen Zeichen
+    const n = sel.text.replace(/\s/g, '').length;
+    if (n > 400) return null;
     const ox = sel.getOoxml();
     await ctx.sync();
-    if (!/Equation\.3/.test(ox.value)) return null;
+    if (/<m:oMath[\s>]/.test(ox.value) || n <= 2) {
+      const w = await wordFormula(ctx, sel, ox.value);
+      if (w) return w;
+    }
+    if (n > 2 || !/Equation\.3/.test(ox.value)) return null;
     let tex;
     try { tex = Eqn3.oleToLatex(oleBytes(ox.value)); }
     catch (e) { const err = new Error(e.message); err.oldFormula = true; throw err; }
@@ -220,6 +226,103 @@
     await ctx.sync();
     const pt = Math.round(sel.font.size || sizePt);
     return {kind: 'old', range: sel, meta: {tex, mode: 'sci', pad: standsAlone(para.text) ? 0 : 0.12, font, pt: pt > 5 && pt < 40 ? pt : sizePt}};
+  }
+
+  // Formel aus dem heutigen Formel-Editor von Word (OMML) an der Markierung. Office.js kennt keine Formel-Objekte,
+  // deshalb über das OOXML des Absatzes: welche Formel ist markiert bzw. enthält den Cursor?
+  async function wordFormula(ctx, sel, selXml) {
+    const para = sel.paragraphs.getFirst();
+    const pox = para.getOoxml();
+    para.load('text');
+    await ctx.sync();
+    const doc = docPart(pox.value);
+    if (!doc || !/<m:oMath[\s>]/.test(doc)) return null;
+    const {items, length} = Omml.spans(doc);
+    if (!items.length) return null;
+    let k = -1;
+    const mine = Omml.list(docPart(selXml) || '');
+    if (mine.length) {
+      // Ganz oder teilweise markierte Formel: dieselbe im Absatz suchen
+      k = items.findIndex(f => f.text === mine[0].text);
+      if (k < 0) k = items.findIndex(f => f.text.includes(mine[0].text) || mine[0].text.includes(f.text));
+    } else {
+      // Cursor: seine Stelle im Absatztext mit den Stellen der Formeln vergleichen
+      const before = para.getRange('Start').expandTo(sel.getRange('Start'));
+      before.load('text');
+      await ctx.sync();
+      const off = Array.from(before.text).length;
+      if (Array.from(para.text).length === length) k = items.findIndex(f => off > f.from && off < f.to);
+      // Zählt Word anders, dann nur, wenn die Formel allein im Absatz steht
+      else if (items.length === 1 && standsAlone(textOf(doc.slice(0, items[0].start) + doc.slice(items[0].end)))) k = 0;
+    }
+    if (k < 0) return null;
+    const f = items[k];
+    const tex = Omml.toLatex(f.xml);
+    if (!tex.trim()) return null;
+    const alone = f.display || standsAlone(textOf(doc.slice(0, f.start) + doc.slice(f.end)));
+    sel.font.load('size');
+    await ctx.sync();
+    let pt = Math.round(Omml.sizeOf(f.xml) || sel.font.size || sizePt);
+    if (!(pt > 5 && pt < 40)) pt = sizePt;
+    return {kind: 'omml', para, index: k, display: f.display, meta: {tex, mode: alone ? 'sci' : 'kom', pad: alone ? 0 : 0.12, font, pt}};
+  }
+  // Hauptteil (word/document.xml) aus dem OOXML-Paket, das getOoxml() liefert
+  function docPart(pkg) {
+    const i = pkg.indexOf('pkg:name="/word/document.xml"');
+    if (i < 0) return /<w:body|<m:oMath/.test(pkg) ? pkg : null;
+    const e = pkg.indexOf('</pkg:part>', i);
+    return pkg.slice(i, e < 0 ? pkg.length : e);
+  }
+  const textOf = xml => (xml.match(/<w:t(?:\s[^>]*)?>[^<]*<\/w:t>/g) || []).map(t => t.replace(/<[^>]+>/g, '')).join('');
+
+  // Word-Formel durch das Formel-Bild ersetzen: Absatz-OOXML holen, die Formel darin austauschen, Absatz zurückschreiben
+  async function replaceWordFormula(ctx, f, r, meta) {
+    const pox = f.para.getOoxml();
+    const next = f.para.getNextOrNullObject();
+    next.load('text');
+    await ctx.sync();
+    const nextWasEmpty = next.isNullObject || !next.text.trim();
+    let pkg = pox.value;
+    const ds = pkg.indexOf('pkg:name="/word/document.xml"');
+    const de = ds < 0 ? -1 : pkg.indexOf('</pkg:part>', ds);
+    if (ds < 0 || de < 0) throw new Error('Absatz nicht lesbar');
+    const doc = pkg.slice(ds, de);
+    const it = Omml.list(doc)[f.index];
+    if (!it) throw new Error('Die Formel ist nicht mehr da. Bitte noch einmal anklicken.');
+    const stamp = Date.now().toString(36);
+    const ridP = 'rIdFe' + stamp + 'p', ridS = 'rIdFe' + stamp + 's';
+    const drop = -Math.round(r.dpt * 2);
+    const run = '<w:r><w:rPr><w:position w:val="' + drop + '"/></w:rPr>' +
+      FeConvert.drawingXml(1, ridP, ridS, r, meta).replace('<w:drawing>', '<w:drawing xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">') + '</w:r>';
+    let pre = doc.slice(0, it.start);
+    // Ein abgesetzter Word-Block war zentriert; ohne eigene Ausrichtung bleibt er das
+    if (it.display && !/<w:jc\b/.test((pre.match(/<w:pPr>[\s\S]*?<\/w:pPr>(?![\s\S]*<w:p[\s>])/) || [''])[0])) pre = FeConvert.centerLast(pre);
+    pkg = pkg.slice(0, ds) + pre + run + doc.slice(it.end) + pkg.slice(de);
+    const RELS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const rels = '<Relationship Id="' + ridP + '" Type="' + RELS + '/image" Target="media/fe' + stamp + '.png"/>' +
+      '<Relationship Id="' + ridS + '" Type="' + RELS + '/image" Target="media/fe' + stamp + '.svg"/>';
+    const ri = pkg.indexOf('pkg:name="/word/_rels/document.xml.rels"');
+    if (ri >= 0) {
+      const ce = pkg.indexOf('</Relationships>', ri);
+      pkg = pkg.slice(0, ce) + rels + pkg.slice(ce);
+    } else {
+      pkg = pkg.replace('</pkg:package>', '<pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml"><pkg:xmlData>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rels + '</Relationships></pkg:xmlData></pkg:part></pkg:package>');
+    }
+    pkg = pkg.replace('</pkg:package>',
+      '<pkg:part pkg:name="/word/media/fe' + stamp + '.png" pkg:contentType="image/png" pkg:compression="store"><pkg:binaryData>' + r.dataUrl.split(',')[1] + '</pkg:binaryData></pkg:part>' +
+      '<pkg:part pkg:name="/word/media/fe' + stamp + '.svg" pkg:contentType="image/svg+xml" pkg:compression="store"><pkg:binaryData>' + b64utf8(r.svg) + '</pkg:binaryData></pkg:part></pkg:package>');
+    const at = f.para.insertOoxml(pkg, 'Replace');
+    await ctx.sync();
+    // Word hängt beim Ersetzen eines ganzen Absatzes manchmal einen leeren an; der kommt wieder weg
+    try {
+      const after = at.paragraphs.getLast().getNextOrNullObject();
+      after.load('text');
+      const pics = after.inlinePictures; pics.load('items');
+      await ctx.sync();
+      if (!after.isNullObject && !after.text.trim() && !pics.items.length && !nextWasEmpty) { after.delete(); await ctx.sync(); }
+    } catch (e) {}
+    return at;
   }
 
   async function checkSelection(manual) {
@@ -239,12 +342,14 @@
           loadMeta(f.meta);
           setEditing(f.meta);
           markSaved();
-          say(pasteMsg, f.kind === 'old'
+          say(pasteMsg, f.kind === 'omml'
+            ? 'Word-Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann den großen Knopf drücken. Danach ist sie im Format dieses Editors.'
+            : f.kind === 'old'
             ? 'Alte Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann den großen Knopf drücken. Danach ist sie im neuen Format.'
             : 'Formel aus dem Dokument geladen. Nach dem Ändern „Formel in Word ersetzen“ drücken.', true);
         } else {
           setEditing(null);
-          if (manual) say(pasteMsg, 'Im Dokument ist keine Formel aus diesem Editor markiert. Bitte die Formel einmal anklicken.');
+          if (manual) say(pasteMsg, 'Im Dokument ist keine Formel markiert. Bitte die Formel einmal anklicken. Eine Word-Formel mitten im Text am besten ganz markieren.');
         }
       });
     } catch (e) {
@@ -279,7 +384,8 @@
         const f = current ? await selectedFormula(ctx) : null;
         if (f) {
           const xml = ooxml(r, meta, null);
-          const at = f.kind === 'new' ? f.pic.getRange('Whole').insertOoxml(xml, 'Replace') : f.range.insertOoxml(xml, 'Replace');
+          const at = f.kind === 'omml' ? await replaceWordFormula(ctx, f, r, meta)
+            : f.kind === 'new' ? f.pic.getRange('Whole').insertOoxml(xml, 'Replace') : f.range.insertOoxml(xml, 'Replace');
           replaced = true;
           if (window.FeNummer) await FeNummer.afterReplace(ctx, at);
         }

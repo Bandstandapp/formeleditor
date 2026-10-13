@@ -319,7 +319,7 @@ section[aria-label="Dokument"] .btn:not(.primary) { padding: 8px 10px; font-size
   }
   async function formatAt(ctx, it) {
     const m = it.meta;
-    const meta = {tex: m.tex, mode: ['lin', 'kom'].includes(m.mode) ? m.mode : 'sci', font: stdFont.value, pt: +stdSize.value};
+    const meta = {tex: window.Eqn3 ? Eqn3.clean(m.tex) : m.tex, mode: ['lin', 'kom'].includes(m.mode) ? m.mode : 'sci', font: stdFont.value, pt: +stdSize.value};
     if (m.pad) meta.pad = m.pad;
     const r = await renderFormula(meta.tex, meta.mode, meta.pt, meta.pad || 0, meta.font, 600);
     it.p.getRange('Whole').insertOoxml(FeWord.ooxml(r, 'FORMEL:' + JSON.stringify(meta)), 'Replace');
