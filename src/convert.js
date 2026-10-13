@@ -1,7 +1,7 @@
 /* Alle Formeln eines Word-Dokuments (.docx) in das neue Format umwandeln.
    Arbeitet auf einer Kopie des Dokuments (JSZip): alte Formeln aus dem Formel-Editor 3.0 werden durch
    Formel-Bilder mit FORMEL-Alternativtext ersetzt, nicht umwandelbare Formeln bleiben stehen und
-   werden gelb markiert. Das Setzen der Formeln übernimmt eine übergebene Funktion render(tex, mode, pt). */
+   werden gelb markiert. Formeln aus dem heutigen Formel-Editor von Word (OMML) werden ebenso umgewandelt. Das Setzen der Formeln übernimmt eine übergebene Funktion render(tex, mode, pt). */
 (function (root) {
   const RELNS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
   const FORMATS = {
@@ -12,7 +12,7 @@
   };
   const formatName = id => FORMATS[id] || (/DSMT/.test(id) ? 'MathType' : 'Formelobjekt ' + id);
   const NEW = 'Neues Format (Formeleditor)';
-  const OMML = 'Word-Formel (OMML, bleibt unverändert)';
+  const OMML = 'Word-Formel (heutiger Formel-Editor von Word)';
 
   const unxml = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
   const xmlEsc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -39,6 +39,25 @@
       if (later.includes(m[1])) return rPr.slice(0, m.index) + el + rPr.slice(m.index);
     }
     return rPr.replace(/<\/w:rPr>$/, el + '</w:rPr>');
+  }
+
+  // Den letzten Absatz in xml zentrieren (w:jc an die vom Schema verlangte Stelle in w:pPr)
+  const PPR_AFTER_JC = ['textDirection', 'textAlignment', 'textboxTightWrap', 'outlineLvl', 'divId', 'cnfStyle', 'rPr', 'sectPr', 'pPrChange'];
+  function centerLast(xml) {
+    const ps = Math.max(xml.lastIndexOf('<w:p>'), xml.lastIndexOf('<w:p '));
+    if (ps < 0) return xml;
+    const open = xml.indexOf('>', ps) + 1;
+    const jc = '<w:jc w:val="center"/>';
+    if (!xml.startsWith('<w:pPr>', open)) return xml.slice(0, open) + '<w:pPr>' + jc + '</w:pPr>' + xml.slice(open);
+    const end = xml.indexOf('</w:pPr>', open);
+    if (end < 0) return xml;
+    const re = /<w:([A-Za-z]+)[\s/>]/g;
+    re.lastIndex = open + 7;
+    let m;
+    while ((m = re.exec(xml)) && m.index < end) {
+      if (PPR_AFTER_JC.includes(m[1])) return xml.slice(0, m.index) + jc + xml.slice(m.index);
+    }
+    return xml.slice(0, end) + jc + xml.slice(end);
   }
 
   // Schriftgröße (pt) aus den Formatvorlagen: Zeichen → Absatzvorlage (mit basedOn) → Standard
@@ -117,8 +136,9 @@
         if (!meta || typeof meta.tex !== 'string') continue;
         found.push({kind: 'new', part, start: m.index, end: m.index + m[0].length, obj: m[0], meta, format: NEW});
       }
-      const reMath = /<m:oMath[\s>][\s\S]*?<\/m:oMath>/g;
-      while ((m = reMath.exec(xml))) found.push({kind: 'omml', part, start: m.index, end: m.index + m[0].length, format: OMML});
+      // Word-Formeln: ein abgesetzter Block (m:oMathPara) zählt als eine Formel, sonst jede m:oMath einzeln
+      const reMath = /<m:oMathPara[\s>][\s\S]*?<\/m:oMathPara>|<m:oMath[\s>][\s\S]*?<\/m:oMath>/g;
+      while ((m = reMath.exec(xml))) found.push({kind: 'omml', part, start: m.index, end: m.index + m[0].length, obj: m[0], display: /^<m:oMathPara/.test(m[0]), format: OMML});
       found.sort((a, b) => a.start - b.start);
       for (const f of found) {
         const rs = Math.max(xml.lastIndexOf('<w:r>', f.start), xml.lastIndexOf('<w:r ', f.start));
@@ -129,7 +149,9 @@
         const before = rs >= 0 ? xml.slice(rs + f.runOpen.length, f.start) : '';
         const rPrM = before.match(/^\s*(<w:rPr>[\s\S]*?<\/w:rPr>)\s*$/);
         f.rPr = rPrM ? rPrM[1] : '';
-        f.simple = f.kind !== 'omml' && rs >= 0 && (rPrM !== null || /^\s*$/.test(before)) && /^\s*$/.test(xml.slice(f.end, f.reEnd));
+        // Word-Formeln stehen nicht in einem w:r, sondern direkt im Absatz (oder in einem Link, Feld …)
+        if (f.kind === 'omml') f.rs = -1;
+        f.simple = f.kind === 'omml' ? true : rs >= 0 && (rPrM !== null || /^\s*$/.test(before)) && /^\s*$/.test(xml.slice(f.end, f.reEnd));
         f.para = xml.slice(ps, pe);
         const pStyle = (f.para.match(/<w:pPr>[\s\S]*?<w:pStyle w:val="([^"]+)"/) || [])[1];
         f.textPt = Math.round(sizeOf(f.rPr, pStyle) * 2) / 2;
@@ -137,7 +159,7 @@
         f.where = ctx ? 'nach „…' + ctx.slice(-40) + '“' : 'am Absatzanfang';
         if (f.kind === 'new') { f.font = FONT_NAMES[f.meta.font] || f.meta.font || '?'; f.pt = +f.meta.pt || f.textPt; }
         else if (f.kind === 'old') { f.font = OLD_FONT; f.pt = f.textPt; }
-        else { f.font = 'Cambria Math (Word)'; f.pt = f.textPt; }
+        else { f.font = 'Cambria Math (Word)'; f.pt = (root.Omml && root.Omml.sizeOf(f.obj)) || f.textPt; }
         items.push(f);
       }
     }
@@ -182,7 +204,9 @@
       return out.join('/');
     };
 
-    const jobs = items.filter(f => f.kind === 'old' || (f.kind === 'new' && (opts.applyFont || opts.applyPt)));
+    // Neue Formeln mit leeren Kästchen (Abstände aus älteren Umwandlungen) werden immer repariert
+    const broken = f => f.kind === 'new' && /[\uE000-\uF8FF]/.test(f.meta.tex);
+    const jobs = items.filter(f => f.kind === 'old' || f.kind === 'omml' || broken(f) || (f.kind === 'new' && (opts.applyFont || opts.applyPt)));
     report.unchanged = items.length - jobs.length;
     let media = 0;
     for (let k = 0; k < jobs.length; k++) {
@@ -190,9 +214,20 @@
       progress(k + 1, jobs.length);
       let tex = null, why = null, mode, pt, font, pad;
       if (j.kind === 'new') {
-        tex = j.meta.tex; mode = ['lin', 'kom'].includes(j.meta.mode) ? j.meta.mode : 'sci'; pad = j.meta.pad || 0;
+        tex = root.Eqn3 ? root.Eqn3.clean(j.meta.tex) : j.meta.tex; mode = ['lin', 'kom'].includes(j.meta.mode) ? j.meta.mode : 'sci'; pad = j.meta.pad || 0;
         font = opts.applyFont ? stdFont : (j.meta.font || stdFont);
         pt = opts.applyPt && opts.pt ? +opts.pt : (+j.meta.pt || j.textPt);
+      } else if (j.kind === 'omml') {
+        font = stdFont;
+        pt = opts.applyPt && opts.pt ? +opts.pt : j.pt;
+        // Abgesetzt wie in Word: Brüche übereinander; im Fließtext klein wie Words eigene Formeln
+        const alone = j.display || standsAlone(textOf(j.para));
+        mode = alone ? 'sci' : 'kom';
+        pad = alone ? 0 : 0.12;
+        try {
+          tex = root.Omml.toLatex(j.obj);
+          if (!tex || !tex.trim()) throw Object.assign(new Error('leer'), {userText: 'Formel ist leer'});
+        } catch (e) { why = e.userText || 'Word-Formel ließ sich nicht lesen'; tex = null; }
       } else {
         font = stdFont;
         pt = opts.applyPt && opts.pt ? +opts.pt : j.textPt;
@@ -227,12 +262,22 @@
                  '<Relationship Id="' + ridSvg + '" Type="' + RELNS + '/image" Target="media/fe' + n + '.svg"/>';
         const m = {tex, mode, font, pt};
         if (pad) m.pad = pad;
+        if (j.kind === 'omml') {
+          // Word-Formel steht direkt im Absatz: an ihre Stelle kommt ein eigener Lauf mit dem Bild
+          j.out = '<w:r>' + setRPr('', 'position', -Math.round(img.dpt * 2)) + drawingXml(newId(), ridPng, ridSvg, img, 'FORMEL:' + JSON.stringify(m)) + '</w:r>';
+          j.from = j.start; j.to = j.end;
+          // Ein abgesetzter Word-Block war zentriert; allein im Absatz bleibt er das
+          if (j.display && !/<w:jc\b/.test(j.para.slice(0, j.para.indexOf('>') + 1) + (j.para.match(/<w:pPr>[\s\S]*?<\/w:pPr>/) || [''])[0])) j.center = true;
+          report.converted++;
+          continue;
+        }
         j.out = j.runOpen + setRPr(j.rPr, 'position', -Math.round(img.dpt * 2)) + drawingXml(newId(), ridPng, ridSvg, img, 'FORMEL:' + JSON.stringify(m)) + '</w:r>';
         j.from = j.rs; j.to = j.reEnd + 6;
         if (j.kind === 'old') report.converted++; else report.reformatted++;
       } else {
         if (!why) why = 'Formel steht an einer ungewöhnlichen Stelle';
         report.problems.push({number: j.number, where: j.where, why, tex});
+        if (j.kind === 'omml') continue;              // bleibt als Word-Formel stehen
         if (j.simple) { j.out = j.runOpen + setRPr(j.rPr, 'highlight', 'yellow') + xml.slice(j.start, j.reEnd + 6); j.from = j.rs; j.to = j.reEnd + 6; }
       }
     }
@@ -242,7 +287,7 @@
       const mine = jobs.filter(j => j.part === part && j.out).sort((a, b) => a.from - b.from);
       if (!mine.length) continue;
       let out = '', pos = 0;
-      mine.forEach(j => { out += part.xml.slice(pos, j.from) + j.out; pos = j.to; });
+      mine.forEach(j => { const pre = part.xml.slice(pos, j.from); out += (j.center ? centerLast(pre) : pre) + j.out; pos = j.to; });
       zip.file(part.name, out + part.xml.slice(pos));
       const r = relsOf[part.name];
       if (r && r.add) zip.file(r.name, r.xml.replace('</Relationships>', r.add + '</Relationships>'));
@@ -257,7 +302,7 @@
     return report;
   }
 
-  const api = {convertDocx, analyze, scan, standsAlone, setRPr, sizeResolver, formatName, FONT_NAMES};
+  const api = {convertDocx, analyze, scan, standsAlone, setRPr, centerLast, drawingXml, sizeResolver, formatName, FONT_NAMES};
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.FeConvert = api;
 })(typeof window !== 'undefined' ? window : globalThis);

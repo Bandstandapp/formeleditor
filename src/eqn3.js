@@ -97,11 +97,12 @@
     0x3a6: '\\Phi', 0x394: '\\Delta', 0x3a3: '\\Sigma', 0x3a9: '\\Omega', 0x393: '\\Gamma', 0x398: '\\Theta', 0x39b: '\\Lambda', 0x3a8: '\\Psi'};
   const SYM = {0x2212: '-', 0x22c5: '\\cdot', 0xd7: '\\times', 0x2248: '\\approx', 0xb1: '\\pm', 0x2217: '\\ast', 0x2264: '\\le', 0x2265: '\\ge',
     0x221e: '\\infty', 0x2211: '\\sum', 0x2202: '\\partial', 0x2192: '\\to', 0x210f: '\\hbar', 0x19b: '\\lambdabar', 0x22ef: '\\cdots',
-    0x2026: '\\ldots', 0x2260: '\\ne', 0x221a: '\\surd', 0x222b: '\\int', 0x2207: '\\nabla', 0xeb04: '\\,', 0xeb02: '\\:', 0x2032: "'",
+    0x2026: '\\ldots', 0x2260: '\\ne', 0x221a: '\\surd', 0x222b: '\\int', 0x2207: '\\nabla', 0xeb04: '\\,', 0xeb02: '\\:', 0xeb05: '\\quad', 0x2032: "'",
     0x7b: '\\{', 0x7d: '\\}', 0x25: '\\%'};
   const FUNCS = new Set(['sin', 'cos', 'tan', 'cot', 'ln', 'log', 'exp', 'lim', 'max', 'min', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan']);
   const isAlpha = c => /^\p{L}$/u.test(String.fromCharCode(c));
-  const ch = c => GREEK[c] || SYM[c] || String.fromCharCode(c);
+  // Unbekannte Zeichen aus dem privaten Bereich (Abstände, Sonderzeichen von MT Extra) erschienen als leere Kästchen
+  const ch = c => GREEK[c] || SYM[c] || (c >= 0xe000 && c <= 0xf8ff ? '' : String.fromCharCode(c));
 
   function toLatex(tree) {
     const lines = objs => objs.filter(n => n[0] === 'line');
@@ -190,7 +191,9 @@
           }
           return '&' + t;
         };
-        return '\\begin{aligned}' + ls.map(at).join('\\\\') + '\\end{aligned}';
+        // Leerzeichen, mit denen eine Zeile früher unter das Gleichheitszeichen geschoben wurde, braucht es nicht mehr
+        const trim = t => t.replace(/^(?:\s|\\(?:quad|qquad|[,:; ])\s*)+&/, '&');
+        return '\\begin{aligned}' + ls.map(at).map(trim).join('\\\\') + '\\end{aligned}';
       }
     }
     return tree.map(node).join('').trim();
@@ -205,8 +208,15 @@
     return t;
   }
 
+  // Formeln, die eine ältere Fassung umgewandelt hat, enthalten noch die Abstandszeichen als leere Kästchen
+  function clean(t) {
+    if (!/[\uE000-\uF8FF]/.test(t)) return t;
+    return t.replace(/\uEB05/g, '\\quad ').replace(/[\uE000-\uF8FF]/g, '')
+      .replace(/(\\\\|\\begin\{aligned\})(?:\s|\\(?:quad|qquad|[,:; ])\s*)+&/g, '$1&');
+  }
+
   function oleToLatex(bytes) { return polish(toLatex(parseMtef(cfbStream(bytes, 'Equation Native')))); }
 
-  const api = {cfbStream, parseMtef, toLatex, polish, oleToLatex};
+  const api = {cfbStream, parseMtef, toLatex, polish, oleToLatex, clean};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Eqn3 = api;
 })(typeof self !== 'undefined' ? self : this);
