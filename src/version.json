@@ -1,1 +1,1 @@
-{"version": "1.9.2", "datum": "2026-10-15", "neu": "Der Schrägstrich / macht jetzt auch auf dem Mac einen Bruch. Nach einer Formel mit Nummer geht es nach Return mit normalem Text weiter."}
+{"version": "1.9.3", "datum": "2026-10-15", "neu": "Formeln haben oben und unten etwas Abstand zum Text, auch ohne Leerzeilen. Der Schrägstrich / macht auf dem Mac einen Bruch."}
