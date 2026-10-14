@@ -32,5 +32,9 @@
  {"name": "Dach, Punkt, Tilde", "tex": "\\hat{H}\\psi=E\\psi,\\quad\\dot{x}+\\ddot{x}=\\tilde{f}"},
  {"name": "Spitze Klammern", "tex": "\\left\\langle\\psi\\middle|\\hat{A}\\middle|\\psi\\right\\rangle"},
  {"name": "Kompakt im Fließtext", "tex": "\\frac{1}{2}mv^2", "mode": "kom"},
- {"name": "Einzeilig im Fließtext", "tex": "\\frac{a+b}{c}", "mode": "lin"}
+ {"name": "Einzeilig im Fließtext", "tex": "\\frac{a+b}{c}", "mode": "lin"},
+ {"name": "Index und Hochzahl vorn", "tex": "{}_{1}^{1}H+{}_{92}^{238}\\mathrm{U}"},
+ {"name": "Normaler Text mit Leerzeichen", "tex": "v=\\frac{s}{t}\\quad\\text{für gleichförmige Bewegung, also } a=0"},
+ {"name": "Abstände mit der Leertaste", "tex": "A=b\\ c\\ 12\\:345"},
+ {"name": "Viele Brüche nebeneinander", "tex": "V=\\frac{q}{4\\uppi\\varepsilon_{0}r}\\frac{1}{\\sqrt{1+\\left( \\frac{\\rho}{r} \\right)^{2}+\\left( \\frac{z}{r} \\right)^{2}}}\\frac{1}{2\\uppi}\\int\\limits_{\\varphi=0}^{2\\uppi}\\frac{d\\varphi}{\\sqrt{1-k\\cos\\varphi}}"}
 ]

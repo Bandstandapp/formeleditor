@@ -27,6 +27,7 @@ const JSZip = require('jszip');
 const Eqn3 = require(path.join(REPO, 'eqn3.js'));
 const Omml = require(path.join(REPO, 'omml.js'));
 globalThis.Omml = Omml;
+globalThis.MathML = require(path.join(REPO, 'mathml.js'));
 const FeConvert = require(path.join(REPO, 'convert.js'));
 
 const args = process.argv.slice(2);
@@ -55,6 +56,11 @@ async function fromDocx(file) {
     if (f.kind === 'new') { out.push({id, tex: f.meta.tex, mode: f.meta.mode || 'sci', where: f.where}); continue; }
     if (f.kind === 'omml') {                                   // Formeln aus dem heutigen Formel-Editor von Word
       try { out.push({id, tex: Omml.toLatex(f.obj), mode: 'sci', where: f.where}); }
+      catch (e) { out.push({id, tex: null, error: 'nicht lesbar: ' + e.message, where: f.where}); }
+      continue;
+    }
+    if (f.kind === 'mt') {                                     // Formeln aus dem heutigen MathType
+      try { out.push({id, tex: MathML.toLatex(f.mathml), mode: 'sci', where: f.where}); }
       catch (e) { out.push({id, tex: null, error: 'nicht lesbar: ' + e.message, where: f.where}); }
       continue;
     }

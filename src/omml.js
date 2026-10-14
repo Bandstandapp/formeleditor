@@ -285,6 +285,6 @@
     return {items: out, length: pos};
   }
 
-  const api = {parse, toLatex, sizeOf, alignAt, list, spans, mText};
+  const api = {parse, toLatex, sizeOf, alignAt, list, spans, mText, runText};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Omml = api;
 })(typeof self !== 'undefined' ? self : this);

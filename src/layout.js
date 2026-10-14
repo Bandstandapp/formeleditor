@@ -116,7 +116,7 @@ body.addin .paper iframe { min-height: 0; }
   heading(eingabe, 'Eingabe',
     'Hier entsteht die Formel. Zum Ändern einer Formel sie im Dokument anklicken, dann erscheint sie hier.\n\n' +
     'Tippen: / macht einen Bruch, ^ eine Hochzahl, _ einen Index. Die Pfeiltasten wechseln zwischen den Feldern.\n\n' +
-    'F macht markierte Zeichen fett, K schaltet zwischen kursiv und aufrecht um, A färbt sie. Ohne Markierung gilt das für die nächsten Zeichen. Die Leertaste setzt einen kleinen Abstand, etwa in 1.159 652 180 46.');
+    'F macht markierte Zeichen fett, K schaltet zwischen kursiv und aufrecht um, A färbt sie. Ohne Markierung gilt das für die nächsten Zeichen. Die Leertaste setzt einen Abstand, zwischen Ziffern einen kleinen wie in 1.159 652 180 46. Am Ende einer Hochzahl oder eines Index springt sie heraus, wie in Word.\n\n„Normaler Text“ schreibt Wörter mit Leerzeichen, esc führt zurück zur Formel.');
   heading(vorschau, 'Vorschau', 'So erscheint die Formel in Word. Der Zoom vergrößert nur diese Ansicht, nicht die Formel im Dokument. Schrift und Schriftgröße gelten für die Formel in der Eingabe.');
 
   // Erklärtexte entfernen; Rückmeldungen (pastemsg, copymsg, Status) bleiben, starten aber leer

@@ -69,7 +69,8 @@
   // Absatz mit nummerierter Formel neu setzen (OOXML des Absatzes, wie getOoxml() es liefert):
   // Einzug links leftTw, ein rechtsbündiger Tabstopp bei tabTw (beides Twips ab linkem Seitenrand),
   // Leerraum vor der ersten Formel weg, zwischen Formel und Nummer genau ein Tabulator.
-  // Liefert das geänderte OOXML oder null, wenn die Nummer nicht zu finden ist.
+  // Liefert das geänderte OOXML, null, wenn die Nummer nicht zu finden ist, und '', wenn im Absatz
+  // gar keine Formel steht (eine Textzeile, die nur zufällig mit „(1)“ endet, bleibt unberührt).
   const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const PPR = ['pStyle', 'keepNext', 'keepLines', 'pageBreakBefore', 'framePr', 'widowControl', 'numPr', 'suppressLineNumbers', 'pBdr', 'shd',
     'tabs', 'suppressAutoHyphens', 'kinsoku', 'wordWrap', 'overflowPunct', 'topLinePunct', 'autoSpaceDE', 'autoSpaceDN', 'bidi', 'adjustRightInd',
@@ -92,6 +93,7 @@
       else if (k === 'br' || k === 'cr') atoms.push({n, kind: 'ws', text: '\n'});
       else if (k === 'drawing' || k === 'object' || k === 'pict') atoms.push({n, kind: 'obj', text: '\ufffc'});
     });
+    if (!atoms.some(a => a.kind === 'obj') && !p.getElementsByTagNameNS('http://schemas.openxmlformats.org/officeDocument/2006/math', 'oMath').length) return '';
     const all = atoms.map(a => a.text).join('');
     const want = '(' + num + ')';
     const at = all.lastIndexOf(want);
@@ -180,6 +182,31 @@
     para.rightIndent = 0;
     para.alignment = 'Left';
   }
+  // Eigene Absatzvorlage „Formel (Editor)“ mit „Standard“ als Folgeabsatz: Nach Return hinter einer Formel
+  // geht es mit normalem Text weiter, ohne den Einzug und den Tabstopp aus dem Lineal (wie bei MathType).
+  const STIL = 'Formel (Editor)';
+  let stilOk = false;
+  async function stil(ctx, para) {
+    try {
+      if (!Office.context.requirements.isSetSupported('WordApi', '1.5')) return;
+      if (!stilOk) {
+        const styles = ctx.document.getStyles();
+        styles.load('items/nameLocal,items/type');
+        await ctx.sync();
+        const names = styles.items.map(s => s.nameLocal);
+        if (!names.includes(STIL)) {
+          const normal = ['Standard', 'Normal'].find(n => names.includes(n));
+          const st = ctx.document.addStyle(STIL, 'Paragraph');
+          if (normal) { st.baseStyle = normal; st.nextParagraphStyle = normal; }
+          await ctx.sync();
+        }
+        stilOk = true;
+      }
+      para.style = STIL;
+      await ctx.sync();
+    } catch (e) { stilOk = false; }
+  }
+  async function prepare(ctx, para) { await stil(ctx, para); indent(para); }
   const inWord = () => typeof Word !== 'undefined' && typeof Office !== 'undefined' && Office.context && Office.context.document;
 
   // Nummer in der Vorschau anzeigen
@@ -317,10 +344,10 @@
     await ctx.sync();
     if (para.text.replace(/[\s\ufffc]/g, '')) {
       const np = para.insertParagraph('', 'After');
-      if (useRuler()) indent(np);
+      if (useRuler()) await prepare(ctx, np);
       return np.getRange('Start');
     }
-    if (useRuler()) indent(para);
+    if (useRuler()) await prepare(ctx, para);
     return sel;
   }
   // Ohne Nummer: Steht die neue Formel allein in ihrem Absatz? Dann bekommt sie die Einzüge aus dem Lineal
@@ -331,7 +358,7 @@
     para.load('text');
     await ctx.sync();
     if (para.text.replace(/[\s\ufffc]/g, '')) return '';
-    indent(para);
+    await prepare(ctx, para);
     return L().pPr();
   }
   // Nach dem Einfügen: Nummer für die nächste Formel vorschlagen
@@ -352,7 +379,7 @@
     para.load('text');
     await ctx.sync();
     if (para.text.replace(/[\s\ufffc]/g, '')) return;
-    indent(para);
+    await prepare(ctx, para);
   }
   root.FeNummer = {wanted, beforeInsert, placeUnnumbered, pPr, afterInsert, afterReplace, done};
 
@@ -361,6 +388,10 @@
   const blank = t => /^[\s\u00a0]*$/.test(t || '');
   const TW = pt => pt * 20;
   async function alignNumbered(ctx, p, num) {
+    const ox0 = p.getOoxml();
+    await ctx.sync();
+    if (layoutXml(ox0.value, num, 0, 0) === '') return 'none';
+    await stil(ctx, p);
     const ox = p.getOoxml();
     await ctx.sync();
     const xml = layoutXml(ox.value, num, TW(L().leftPt()), TW(L().tabPt()));
@@ -388,10 +419,11 @@
       await ctx.sync();
       if (lead.text && blank(lead.text)) lead.delete();
     }
-    indent(p);
+    await prepare(ctx, p);
     return true;
   }
   async function alignAll(progress) {
+    stilOk = false;                       // Vorlage notfalls neu anlegen, falls sie gelöscht wurde
     let done = 0, numbered = 0, skipped = [];
     await Word.run(async ctx => {
       const ps = ctx.document.body.paragraphs;
@@ -406,7 +438,8 @@
       if (progress) progress(0, todo.length);
       for (let i = 0; i < todo.length; i++) {
         const {p, num} = todo[i];
-        if (await alignPara(ctx, p, num)) { done++; if (num) numbered++; } else skipped.push(num);
+        const r = await alignPara(ctx, p, num);
+        if (r === 'none') { /* Textzeile ohne Formel */ } else if (r) { done++; if (num) numbered++; } else skipped.push(num);
         if (progress) progress(i + 1, todo.length);
       }
       await ctx.sync();
