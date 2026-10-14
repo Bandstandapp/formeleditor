@@ -298,6 +298,7 @@
   }
 
   let pendingNote = '';
+  let nachher = null;                     // Absatz, der vor dem Einfügen auf den Formel-Absatz folgte
   // Gewünschte Nummer für die nächste eingefügte Formel, sonst null
   function wanted() {
     sync();
@@ -341,6 +342,8 @@
     const sel = ctx.document.getSelection();
     const para = sel.paragraphs.getFirst();
     para.load('text');
+    nachher = para.getNextOrNullObject();
+    nachher.load('isNullObject');
     await ctx.sync();
     if (para.text.replace(/[\s\ufffc]/g, '')) {
       const np = para.insertParagraph('', 'After');
@@ -375,7 +378,7 @@
   async function afterInsert(ctx, range, num) {
     if (!useRuler()) return;
     const para = range.paragraphs.getFirst();
-    if (num) { await alignNumbered(ctx, para, num); return; }
+    if (num) { const n = nachher; nachher = null; await alignNumbered(ctx, para, num, n); return; }
     para.load('text');
     await ctx.sync();
     if (para.text.replace(/[\s\ufffc]/g, '')) return;
@@ -387,8 +390,10 @@
   // Der Absatz wird über sein OOXML neu geschrieben (layoutXml), denn Tabstopps kennt Office.js nicht.
   const blank = t => /^[\s\u00a0]*$/.test(t || '');
   const TW = pt => pt * 20;
-  async function alignNumbered(ctx, p, num) {
+  async function alignNumbered(ctx, p, num, next0) {
     const ox0 = p.getOoxml();
+    const neu = !!next0;                  // gerade eingefügt: danach Cursor ans Ende der Formelzeile
+    if (!next0) { next0 = p.getNextOrNullObject(); next0.load('isNullObject'); }
     await ctx.sync();
     if (layoutXml(ox0.value, num, 0, 0) === '') return 'none';
     await stil(ctx, p);
@@ -396,7 +401,7 @@
     await ctx.sync();
     const xml = layoutXml(ox.value, num, TW(L().leftPt()), TW(L().tabPt()));
     if (!xml) return false;
-    p.insertOoxml(xml, 'Replace');
+    const fp = p.insertOoxml(xml, 'Replace').paragraphs.getFirst();
     await ctx.sync();
     // Bleibt der alte Absatz leer zurück, wird er entfernt
     try {
@@ -404,7 +409,34 @@
       await ctx.sync();
       if (!p.text.replace(/[\s\u00a0\ufffc]/g, '')) { p.delete(); await ctx.sync(); }
     } catch (e) {}
+    await leftover(ctx, fp, next0, neu);
     return true;
+  }
+  // Word lässt beim Einfügen eines ganzen Absatzes einen leeren Absatz dahinter zurück, mit Formel-Vorlage,
+  // Einzug und Tabstopp der Formel. Wer dort weiterschreibt, schreibt eingerückt. Solche Absätze zwischen der
+  // Formel und dem Absatz, der vorher folgte, werden entfernt; der Cursor steht danach am Ende der Formelzeile,
+  // so dass Return einen normalen Absatz („Standard“) beginnt.
+  async function leftover(ctx, fp, next0, cursor) {
+    try {
+      for (let i = 0; i < 3; i++) {
+        const nx = fp.getNextOrNullObject();
+        nx.load('isNullObject,text');
+        await ctx.sync();
+        if (nx.isNullObject) break;
+        if (next0 && !next0.isNullObject) {
+          const c = nx.getRange('Whole').compareLocationWith(next0.getRange('Whole'));
+          await ctx.sync();
+          if (c.value !== 'Before') break;
+        }
+        const pics = nx.inlinePictures;
+        pics.load('items');
+        await ctx.sync();
+        if (nx.text.replace(/[\s\u00a0]/g, '') || pics.items.length) break;
+        nx.delete();
+        await ctx.sync();
+      }
+    } catch (e) {}
+    if (cursor) try { fp.getRange('End').select(); await ctx.sync(); } catch (e) {}
   }
   // Einen Absatz mit abgesetzter Formel wie im Lineal setzen; num: seine Nummer oder null. false, wenn die Nummer fehlt.
   async function alignPara(ctx, p, num) {
