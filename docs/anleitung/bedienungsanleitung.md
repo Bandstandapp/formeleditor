@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.7.6
+: Bedienungsanleitung für Word auf dem Mac, Version 1.9.0
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -17,13 +17,15 @@ Darunter liegen drei Kacheln: **Bausteine**, **Eingabe** und **Ergebnis**. Ein k
 ![](img/01-start.png)
 Caption: Der Editor nach dem Öffnen, die Eingabe ist leer
 
-> Tipp zur Breite. Die Spalte des Editors lässt sich mit der Maus an ihrem linken Rand breiter ziehen. Ist sie sehr schmal, rutschen die Knöpfe unter der Eingabe in eine zweite Reihe. Sie bleiben aber immer vollständig lesbar.
+> Tipp zur Breite. Die Spalte des Editors lässt sich mit der Maus an ihrem linken Rand breiter ziehen. Ist sie sehr schmal, rutschen die Knöpfe unter der Eingabe in eine zweite Reihe. Sie bleiben aber immer vollständig lesbar. Word merkt sich die Breite im Dokument, sobald man es danach speichert.
 
 ## Eine Formel schreiben
 
 ### Mit den Bausteinen
 
 Unter **Aufbau** liegen Brüche, Wurzeln, Klammern, Hochzahlen, Summen und Integrale. Ein Klick setzt den Baustein an der Stelle des blinkenden Strichs ein. Leere Felder, etwa Zähler und Nenner, erscheinen als kleine Kästchen und werden der Reihe nach ausgefüllt.
+
+**Index vorn** setzt Index und Hochzahl vor ein Zeichen, etwa bei ¹₁H. **Normaler Text** schreibt Wörter mit Leerzeichen, so wie im Fließtext. Ein zweiter Klick auf **Normaler Text** oder die Taste esc führt zurück zur Formel. Solange Text geschrieben wird, ist der Baustein blau umrandet.
 
 Für längere Formeln gibt es **Mehrzeilig** (Gleichungen untereinander, am Gleichheitszeichen ausgerichtet), **Gleichungssystem**, **Fallunterscheidung**, **Matrix**, **Spaltenvektor** und **Determinante**. Mit **Zeile dazu**, **Spalte dazu**, **Zeile weg** und **Spalte weg** passt man sie an. Dazu den Cursor in die Zeile oder Spalte setzen, um die es geht.
 
@@ -68,12 +70,14 @@ Buchstaben und Zahlen tippt man einfach in die Eingabe. Einige Tasten haben eine
 | `^` | beginnt eine Hochzahl |
 | `_` | beginnt einen Index (tiefgestellt) |
 | Pfeiltasten | wechseln zwischen Zähler, Nenner und den übrigen Feldern |
-| Leertaste | kleiner Abstand zwischen Ziffern, etwa 1.159 652 180 46 |
+| Leertaste | Abstand, zwischen Ziffern ein kleiner wie in 1.159 652 180 46; am Ende einer Hochzahl oder eines Index springt sie heraus, wie in Word |
 | Rückschritt | löscht das Zeichen links vom Cursor |
 
 Caption: Tasten mit besonderer Wirkung in der Eingabe
 
 Nach einem Komma entsteht kein Abstand. Man schreibt also 1,5 und erhält 1,5 und nicht 1, 5.
+
+Neben = + − und nach sin, cos und ähnlichen steht schon von selbst der richtige Abstand. Dort bleibt die Leertaste ohne Wirkung, damit die Formel nicht breiter wird. So entsteht etwa Y = m₀c/(kᵥp) mit den Tasten Y = m _ 0 Leertaste c / k _ v Leertaste p.
 
 ### Die Knöpfe unter der Eingabe
 
@@ -127,6 +131,8 @@ Darunter stehen beide Werte in cm. Man kann sie dort auch eintippen.
 
 Ist **Werte für Formel übernehmen** angekreuzt, kommt jede neue abgesetzte Formel gleich beim Einfügen an diese Stelle, ohne weiteren Knopf. Auch eine geladene Formel rückt beim Ersetzen dorthin. Ohne Häkchen bleibt alles, wie es ist. Eine Formel mitten im Fließtext wird nie eingerückt.
 
+Der Absatz mit der Formel bekommt die Absatzvorlage **Formel (Editor)**. Drückt man hinter der Formel die Return-Taste, geht es im nächsten Absatz mit normalem Text weiter, ohne Einzug und ohne den Tabstopp aus dem Lineal. Textzeilen ohne Formel rührt das Lineal nicht an, auch wenn sie mit einer Zahl in Klammern enden.
+
 Das Lineal erscheint bei der Darstellung **Wissenschaftlich**, auch wenn eine vorhandene Formel zum Ändern geladen ist.
 
 ![](img/21-nummer.png)
@@ -145,6 +151,8 @@ Es gibt acht Schriften. STIX Two passt am besten zu Times New Roman. Termes ist 
 1. Die Formel im Dokument einmal anklicken.
 2. Sie erscheint in der Eingabe mit einem **grünen Rahmen**. Grün heißt: Die Formel ist genau so wie im Dokument.
 3. Solange nichts geändert ist, heißt der große Knopf **Ohne Änderung übernehmen**. Er wandelt eine alte Formel unverändert ins neue Format um.
+
+Das klappt mit Formeln aus diesem Editor, aus dem alten Formel-Editor, aus dem heutigen Formel-Editor von Word und aus dem heutigen MathType.
 
 ![](img/08-geladen.png)
 Caption: Geladene Formel mit grünem Rahmen

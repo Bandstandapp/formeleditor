@@ -205,6 +205,17 @@
     for (const p of pics.items) {
       const m = findMeta(null, (p.altTextDescription || '') + ' ' + (p.altTextTitle || ''));
       if (m) return {kind: 'new', pic: p, meta: m};
+      // Formel aus dem heutigen MathType: MathML im Alternativtext
+      const mml = window.MathML && MathML.fromAlt(p.altTextDescription);
+      if (mml) {
+        let tex;
+        try { tex = MathML.toLatex(mml); } catch (e) { const err = new Error(e.message); err.oldFormula = true; throw err; }
+        const para = sel.paragraphs.getFirst();
+        para.load('text');
+        await ctx.sync();
+        const pt = Math.round(MathML.sizeOf(mml) || sizePt);
+        return {kind: 'mt', pic: p, meta: {tex, mode: 'sci', pad: standsAlone(para.text) ? 0 : 0.12, font, pt: pt > 5 && pt < 40 ? pt : sizePt}};
+      }
     }
     // Nur kurze Markierungen prüfen: ein angeklicktes Formelobjekt hat (fast) keinen Text,
     // eine ganz markierte Word-Formel nur ihre eigenen Zeichen
@@ -344,6 +355,8 @@
           markSaved();
           say(pasteMsg, f.kind === 'omml'
             ? 'Word-Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann den großen Knopf drücken. Danach ist sie im Format dieses Editors.'
+            : f.kind === 'mt'
+            ? 'MathType-Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann den großen Knopf drücken. Danach ist sie im Format dieses Editors.'
             : f.kind === 'old'
             ? 'Alte Formel übernommen. Bitte kurz prüfen, bei Bedarf ändern und dann den großen Knopf drücken. Danach ist sie im neuen Format.'
             : 'Formel aus dem Dokument geladen. Nach dem Ändern „Formel in Word ersetzen“ drücken.', true);
@@ -385,7 +398,7 @@
         if (f) {
           const xml = ooxml(r, meta, null);
           const at = f.kind === 'omml' ? await replaceWordFormula(ctx, f, r, meta)
-            : f.kind === 'new' ? f.pic.getRange('Whole').insertOoxml(xml, 'Replace') : f.range.insertOoxml(xml, 'Replace');
+            : f.kind === 'new' || f.kind === 'mt' ? f.pic.getRange('Whole').insertOoxml(xml, 'Replace') : f.range.insertOoxml(xml, 'Replace');
           replaced = true;
           if (window.FeNummer) await FeNummer.afterReplace(ctx, at);
         }

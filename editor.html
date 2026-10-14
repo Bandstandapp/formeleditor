@@ -62,6 +62,7 @@ header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
 .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
 .tool { font: inherit; display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 84px; padding: 8px 4px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--fg); cursor: pointer; }
 .tool:hover { border-color: var(--accent); background: var(--accent-soft); }
+.tool[aria-pressed="true"] { border: 2px solid var(--accent); background: var(--accent-soft); }
 .tool .g > span.w { display: inline-block; }
 .tool .g { font-family: "Times New Roman", "STIX Two Math", serif; font-size: 1.9rem; line-height: 1; min-height: 2.1rem; display: flex; align-items: center; justify-content: center; }
 .tool .g i { font-style: italic; }
@@ -145,6 +146,7 @@ details code { display: block; white-space: pre-wrap; word-break: break-all; fon
   <section class="panel" aria-label="Eingabe">
     <p class="label">Eingabe</p>
     <div id="mfwrap"></div>
+    <p class="hint" id="textmsg" hidden>Jetzt wird normaler Text geschrieben, mit Leerzeichen. Zurück zur Formel: „Normaler Text“ noch einmal drücken oder die Taste esc.</p>
     <div class="row">
       <button class="btn" id="undo" type="button">Rückgängig</button>
       <button class="btn" id="redo" type="button">Wiederholen</button>
@@ -228,6 +230,8 @@ const TOOLS = {
     {g: '<i>x</i><sup>n</sup>', n: 'Hochzahl', ins: '#@^{#?}'},
     {g: '<i>x</i><sub>n</sub>', n: 'Index', ins: '#@_{#?}'},
     {g: '<i>x</i><span style="display:inline-grid;font-size:.55em;line-height:1;vertical-align:middle;margin-left:.05em"><span>2</span><span>n</span></span>', n: 'Index und Hochzahl', ins: '#@_{#?}^{#?}'},
+    {g: '<span style="display:inline-grid;font-size:.55em;line-height:1;vertical-align:middle;margin-right:.05em"><span>1</span><span>1</span></span><i>H</i>', n: 'Index vorn', ins: '{}_{#?}^{#?}#?'},
+    {g: '<span style="font-size:.55em">Text</span>', n: 'Normaler Text', ins: '\\text{#@}', text: true},
     {g: '√<span style="border-top:1.5px solid currentColor"><i>x</i></span>', n: 'Wurzel', ins: '\\sqrt{#@}'},
     {g: '<sup style="font-size:.6em">n</sup>√<span style="border-top:1.5px solid currentColor"><i>x</i></span>', n: 'n-te Wurzel', ins: '\\sqrt[#?]{#@}'},
     {g: '( )', n: 'Runde Klammern', ins: '\\left(#@\\right)'},
@@ -263,8 +267,7 @@ const TOOLS = {
     {g: '<span style="font-size:.6em">sin</span>', n: 'Sinus', ins: '\\sin '},
     {g: '<span style="font-size:.6em">cos</span>', n: 'Kosinus', ins: '\\cos '},
     {g: '<span style="font-size:.6em">ln</span>', n: 'Logarithmus', ins: '\\ln '},
-    {g: '<span style="font-size:.6em">exp</span>', n: 'Exponential', ins: '\\exp '},
-    {g: '<span style="font-size:.55em">Text</span>', n: 'Normaler Text', ins: '\\mathrm{#@}'}
+    {g: '<span style="font-size:.6em">exp</span>', n: 'Exponential', ins: '\\exp '}
   ],
   greek: 'α:alpha β:beta γ:gamma δ:delta ε:varepsilon ζ:zeta η:eta θ:theta ϑ:vartheta κ:kappa λ:lambda μ:mu ν:nu ξ:xi π:uppi ρ:rho σ:sigma τ:tau φ:varphi ϕ:phi χ:chi ψ:psi ω:omega Γ:Gamma Δ:Delta Θ:Theta Λ:Lambda Ξ:Xi Π:Pi Σ:Sigma Φ:Phi Ψ:Psi Ω:Omega'
     .split(' ').map(p => { const [g, c] = p.split(':'); return {g, ins: '\\' + c + ' ', sym: true}; }),
@@ -274,7 +277,7 @@ const TOOLS = {
     ['·','\\cdot '],['×','\\times '],['=','='],['≈','\\approx '],['≠','\\ne '],['≡','\\equiv '],['∼','\\sim '],['∝','\\propto '],
     ['<','<'],['>','>'],['≤','\\le '],['≥','\\ge '],['≪','\\ll '],['≫','\\gg '],['→','\\to '],['⇒','\\Rightarrow '],['⇔','\\Leftrightarrow '],
     ['∈','\\in '],['°','^{\\circ}'],['′',"'"],['∗','^{\\ast}'],['⋯','\\cdots '],['…','\\ldots '],['⊥','\\perp '],['∥','\\parallel '],['Å','\\mathrm{Å}'],
-    ['†','^{\\dagger}'],['⊗','\\otimes '],['∀','\\forall '],['∃','\\exists '],['∉','\\notin '],['⊂','\\subset '],['∪','\\cup '],['∩','\\cap '],['←','\\leftarrow '],['↔','\\leftrightarrow ']
+    ['<span class="op">␣</span>','\\,','Abstand klein'],['<span class="op">␣␣</span>','\\quad ','Abstand groß'],['†','^{\\dagger}'],['⊗','\\otimes '],['∀','\\forall '],['∃','\\exists '],['∉','\\notin '],['⊂','\\subset '],['∪','\\cup '],['∩','\\cap '],['←','\\leftarrow '],['↔','\\leftrightarrow ']
   ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true})),
   // Einheiten stehen aufrecht, damit m oder s nicht wie Variablen aussehen; direkt nach einer Zahl kommt ein kleiner Abstand dazu
   einheiten: [
@@ -306,6 +309,12 @@ function parse(s) {
         else j++;
         out.push({t: 'c', v: s.slice(i + 1, j)}); i = j;
         while (s[i] === ' ' && /[a-zA-Z]$/.test(out[out.length - 1].v)) i++;
+        // Text bleibt wörtlich, mit seinen Leerzeichen
+        if (TEXTCMD.has(out[out.length - 1].v) && s[i] === '{') {
+          let d = 0, k = i;
+          for (; k < s.length; k++) { if (s[k] === '\\') { k++; continue; } if (s[k] === '{') d++; else if (s[k] === '}' && --d === 0) break; }
+          out.push({t: 'raw', v: s.slice(i, k + 1)}); i = k + 1;
+        }
         continue;
       }
       if (c === ' ') { i++; continue; }
@@ -318,6 +327,7 @@ function parse(s) {
 function ser(nodes) {
   return nodes.map(n => n.t === 'g' ? '{' + ser(n.c) + '}' : n.t === 'c' ? '\\' + n.v + (/[a-zA-Z]$/.test(n.v) ? ' ' : '') : n.t === 'raw' ? n.v : n.v).join('');
 }
+const TEXTCMD = new Set(['text', 'textrm', 'textit', 'textbf', 'mbox']);
 const FRAC = new Set(['frac', 'dfrac', 'tfrac']);
 const BIGOP = new Set(['sum', 'prod', 'coprod', 'bigcup', 'bigcap']);
 const SPACE = new Set([',', ';', ':', '!', ' ', 'quad', 'qquad']);
@@ -390,6 +400,7 @@ function tf(nodes, m, script) {
 }
 function prep(tex) {
   return tex.replace(/(?<!\\),/g, '{,}')     // Komma ohne nachfolgenden Abstand (1,5 und r_{1,2})
+    .replace(/\\exponentialE(?![a-zA-Z])/g, 'e').replace(/\\imaginaryI(?![a-zA-Z])/g, 'i').replace(/\\imaginaryJ(?![a-zA-Z])/g, 'j').replace(/\\differentialD(?![a-zA-Z])/g, 'd')
     .replace(/\\hbar(?![a-zA-Z])/g, '\\hbarh').replace(/\\hslash(?![a-zA-Z])/g, '\\hslashd').replace(/\\unicode\{["x]?0?19[Bb]\}|ƛ/g, '\\lambdabar ').replace(/\\char"019B/g, '\\lambdabar ');
 }
 function render(tex, m, display) {
@@ -419,7 +430,11 @@ function frameDoc(fontId) {
    tex:{packages:{'[+]':['upgreek','enclose']},macros:{bm:['\\\\boldsymbol{#1}',1],lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
    output:{font:'mathjax-${fontId}',linebreaks:{inline:false}},
    svg:{fontCache:'local'},
-   startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};
+   startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__tight();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};
+  // Engere Abstände wie bei MathType: weniger Luft um = und +, zwischen Brüchen und neben dem Bruchstrich.
+  // LaTeX-Werte wären 5/18, 4/18 und 3/18 em sowie 0,12 em neben jedem Bruch.
+  window.__tight=function(){const M=MathJax._.util.lengths.MATHSPACE,P=MathJax.startup.output.font.params;
+    M.thickmathspace=4/18;M.mediummathspace=3/18;M.thinmathspace=2/18;P.nulldelimiterspace=.05;};
   window.__zoom=function(z){document.documentElement.style.fontSize=(20*z)+'px';document.body.style.fontSize=(20*z)+'px';
     parent.postMessage({fe:'h',h:document.body.scrollHeight},'*');};
   window.__show=function(disp,inl,m){
@@ -459,7 +474,7 @@ function frameDoc(fontId) {
   <div class="only-sci"><p class="lbl">Abgesetzte Gleichung</p>
   <div class="eq"><div class="f" id="f"><span class="wait">Schrift wird geladen …</span></div><div class="no">(1)</div></div></div>
   <div class="only-lin"><p class="lbl">Im Fließtext</p>
-  <p class="txt">The relation <span id="i"></span> holds for both charged particles.</p></div>
+  <p class="txt"><span id="i"></span></p></div>
   </div></body></html>`;
 }
 const frame = document.getElementById('out');
@@ -631,6 +646,9 @@ document.getElementById('fromword').addEventListener('click', async () => {
 function useTool(t) {
   leaveLatex();
   mf.focus();
+  // „Normaler Text“ schaltet zwischen Text (mit Leerzeichen, ohne Kürzel) und Formel um
+  if (t.text) { setTextMode(mf.mode !== 'text'); document.dispatchEvent(new CustomEvent('fe-tool', {detail: t})); return; }
+  if (mf.mode === 'text') setTextMode(false);
   let before = '', empty = true;
   try { before = mf.getValue(0, mf.position, 'latex'); empty = mf.selectionIsCollapsed; } catch (e) {}
   const wrap = t.ins && t.ins.match(/^\\(mathrm|mathbf)\{#@\}$/);
@@ -640,6 +658,17 @@ function useTool(t) {
   else mf.executeCommand(['insert', (t.unit && /[0-9]$/.test(before) ? '\\,' : '') + t.ins, {selectionMode: 'placeholder', format: 'latex'}]);
   mf.focus(); setTimeout(() => mf.focus(), 0);
   document.dispatchEvent(new CustomEvent('fe-tool', {detail: t}));
+}
+function setTextMode(on) {
+  try { mf.executeCommand(['switchMode', on ? 'text' : 'math']); } catch (e) {}
+  mf.focus(); setTimeout(() => mf.focus(), 0);
+  syncTextMode();
+}
+function syncTextMode() {
+  const on = !!mf && mf.mode === 'text';
+  document.querySelectorAll('.tool[data-text]').forEach(b => b.setAttribute('aria-pressed', on));
+  const h = document.getElementById('textmsg');
+  if (h) h.hidden = !on;
 }
 function buildTools(tab) {
   const box = document.getElementById('tools');
@@ -651,6 +680,7 @@ function buildTools(tab) {
     b.type = 'button'; b.className = 'tool';
     b.innerHTML = '<span class="g"><span class="w">' + t.g + '</span></span>' + (t.n ? '<span class="n">' + t.n + '</span>' : '');
     if (!t.n) b.setAttribute('aria-label', t.g);
+    if (t.text) { b.dataset.text = '1'; b.setAttribute('aria-pressed', !!mf && mf.mode === 'text'); }
     b.addEventListener('mousedown', e => e.preventDefault());   // die Eingabe behält den Cursor
     b.addEventListener('click', () => useTool(t));
     box.appendChild(b);
@@ -698,6 +728,8 @@ function init() {
   document.getElementById('mfwrap').appendChild(mf);
   mf.setAttribute('aria-label', 'Formel eingeben');
   const setup = () => {
+    // Kürzel nur für Funktionsnamen (sonst wird aus „lt“ ein <, aus „ee“ ein e, aus „ch“ ein ch-Operator)
+    mf.inlineShortcuts = Object.fromEntries('sin cos tan cot sinh cosh tanh coth arcsin arccos arctan ln lg log exp lim max min det'.split(' ').map(f => [f, '\\' + f]));
     mf.macros = Object.assign({}, mf.macros, {
       lambdaslash: {def: 'ƛ', captureSelection: true, expand: false},
       lambdabar: {def: '\\mathrlap{\\mkern4mu\\raisebox{0.52em}{\\rule{0.3em}{0.05em}}}\\lambda', captureSelection: true, expand: false},
@@ -720,21 +752,33 @@ function init() {
   else mf.addEventListener('mount', setup, {once: true});
   // Backslash öffnet in MathLive einen Rohtext-Modus, den Papa nicht braucht
   mf.addEventListener('keydown', e => { if (e.key === '\\') { e.preventDefault(); e.stopPropagation(); } }, {capture: true});
-  // Leertaste zwischen Ziffern: kleiner Abstand für Zahlengruppen wie 1.159 652 180 46.
-  // Der Abstand entsteht erst, wenn wieder eine Ziffer folgt; vor = oder + bleibt die Leertaste ohne Wirkung.
-  let gapPending = false;
+  // Leertaste: Steht der Cursor am Ende einer Hochzahl oder eines Index, verlässt sie ihn (wie in Word).
+  // Sonst setzt sie einen Abstand, nach einer Ziffer einen kleinen für Zahlengruppen wie 1.159 652 180 46.
+  // Der Abstand entsteht erst mit dem nächsten Zeichen: Vor und nach = + − und nach Funktionen wie sin
+  // steht schon Abstand, dort bleibt die Leertaste ohne Wirkung (sonst würden die Formeln breiter).
+  let gap = '';
+  const FUNCS = /(sin|cos|tan|cot|sinh|cosh|tanh|coth|ln|lg|log|exp|lim|max|min|det)$/;
   mf.addEventListener('keydown', e => {
-    if (e.key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey && mf.mode === 'math') {
+    if (e.key === 'Escape' && mf.mode === 'text') { e.preventDefault(); e.stopPropagation(); setTextMode(false); gap = ''; return; }
+    if (mf.mode !== 'math' || e.ctrlKey || e.metaKey || e.altKey) { gap = ''; return; }
+    if (e.key === ' ') {
+      e.preventDefault(); e.stopPropagation();
+      let at = null;
+      try { const md = mf._mathfield.model; at = md.at(md.position); } catch (err) {}
+      if (at && /^(subscript|superscript)$/.test(at.parentBranch || '') && !at.rightSibling) { mf.executeCommand('moveAfterParent'); gap = ''; return; }
+      if (!at || at.type === 'first' || /^(mrel|mbin|mop|mopen|mpunct|spacing)$/.test(at.type)) { gap = ''; return; }
       let before = '';
       try { before = mf.getValue(0, mf.position, 'latex'); } catch (err) {}
-      e.preventDefault(); e.stopPropagation();
-      gapPending = /[0-9]$/.test(before);
+      if (FUNCS.test(before)) { gap = ''; return; }
+      gap = at.type === 'mord' && /^[0-9]$/.test(at.value || '') && !at.subscript && !at.superscript ? '\\:' : '\\ ';
       return;
     }
-    if (gapPending && /^[0-9]$/.test(e.key)) mf.insert('\\:', {format: 'latex'});
-    if (e.key !== 'Shift') gapPending = false;
+    if (e.key === 'Shift' || !gap) return;
+    const g = gap; gap = '';
+    if (e.key.length === 1 && !/[=+\-*<>\/^_)\]},.;:!|·×−]/.test(e.key)) mf.insert(g, {format: 'latex'});
   }, {capture: true});
-  mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); });
+  mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); syncTextMode(); });
+  mf.addEventListener('selection-change', syncTextMode);
   mf.addEventListener('input', () => { clearTimeout(window.__t); window.__t = setTimeout(show, 250); });
   document.getElementById('undo').onclick = () => { mf.executeCommand('undo'); show(); };
   document.getElementById('redo').onclick = () => { mf.executeCommand('redo'); show(); };

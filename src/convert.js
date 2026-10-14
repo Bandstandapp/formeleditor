@@ -13,6 +13,7 @@
   const formatName = id => FORMATS[id] || (/DSMT/.test(id) ? 'MathType' : 'Formelobjekt ' + id);
   const NEW = 'Neues Format (Formeleditor)';
   const OMML = 'Word-Formel (heutiger Formel-Editor von Word)';
+  const MT = 'MathType (heutiges Add-in)';
 
   const unxml = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
   const xmlEsc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -128,8 +129,11 @@
       }
       const reDr = /<w:drawing>[\s\S]*?<\/w:drawing>/g;
       while ((m = reDr.exec(xml))) {
-        const dp = m[0].match(/<wp:docPr\b[^>]*>/);
+        const dp = m[0].match(/<wp:docPr\b(?:[^>"]|"[^"]*")*>/);   // im Alternativtext von MathType steht auch ">"
         const descr = dp && attr(dp[0], 'descr');
+        // Heutiges MathType: Bild mit der Formel als MathML im Alternativtext
+        const mml = root.MathML && descr ? root.MathML.fromAlt(descr) : null;
+        if (mml) { found.push({kind: 'mt', part, start: m.index, end: m.index + m[0].length, obj: m[0], mathml: mml, format: MT}); continue; }
         if (!descr || !/^FORMEL:/.test(descr)) continue;
         let meta = null;
         try { meta = JSON.parse(descr.slice(7)); } catch (e) {}
@@ -146,7 +150,8 @@
         const pe = xml.indexOf('</w:p>', f.end);
         f.rs = rs; f.reEnd = xml.indexOf('</w:r>', f.end);
         f.runOpen = rs >= 0 ? xml.slice(rs, xml.indexOf('>', rs) + 1) : '';
-        const before = rs >= 0 ? xml.slice(rs + f.runOpen.length, f.start) : '';
+        // Word merkt sich im Lauf manchmal einen Seitenumbruch (lastRenderedPageBreak); der stört nicht
+        const before = rs >= 0 ? xml.slice(rs + f.runOpen.length, f.start).replace(/<w:lastRenderedPageBreak\/>/g, '') : '';
         const rPrM = before.match(/^\s*(<w:rPr>[\s\S]*?<\/w:rPr>)\s*$/);
         f.rPr = rPrM ? rPrM[1] : '';
         // Word-Formeln stehen nicht in einem w:r, sondern direkt im Absatz (oder in einem Link, Feld …)
@@ -159,6 +164,7 @@
         f.where = ctx ? 'nach „…' + ctx.slice(-40) + '“' : 'am Absatzanfang';
         if (f.kind === 'new') { f.font = FONT_NAMES[f.meta.font] || f.meta.font || '?'; f.pt = +f.meta.pt || f.textPt; }
         else if (f.kind === 'old') { f.font = OLD_FONT; f.pt = f.textPt; }
+        else if (f.kind === 'mt') { f.font = 'MathType'; f.pt = root.MathML.sizeOf(f.mathml) || f.textPt; }
         else { f.font = 'Cambria Math (Word)'; f.pt = (root.Omml && root.Omml.sizeOf(f.obj)) || f.textPt; }
         items.push(f);
       }
@@ -185,7 +191,7 @@
     items.forEach(f => { report.formats[f.format] = (report.formats[f.format] || 0) + 1; });
 
     const usedIds = new Set();
-    parts.forEach(p => (p.xml.match(/<wp:docPr\b[^>]*>/g) || []).forEach(t => usedIds.add(+attr(t, 'id'))));
+    parts.forEach(p => (p.xml.match(/<wp:docPr\b(?:[^>"]|"[^"]*")*>/g) || []).forEach(t => usedIds.add(+attr(t, 'id'))));
     let nextId = 1000;
     const newId = () => { while (usedIds.has(nextId)) nextId++; usedIds.add(nextId); return nextId++; };
 
@@ -206,7 +212,7 @@
 
     // Neue Formeln mit leeren Kästchen (Abstände aus älteren Umwandlungen) werden immer repariert
     const broken = f => f.kind === 'new' && /[\uE000-\uF8FF]/.test(f.meta.tex);
-    const jobs = items.filter(f => f.kind === 'old' || f.kind === 'omml' || broken(f) || (f.kind === 'new' && (opts.applyFont || opts.applyPt)));
+    const jobs = items.filter(f => f.kind === 'old' || f.kind === 'omml' || f.kind === 'mt' || broken(f) || (f.kind === 'new' && (opts.applyFont || opts.applyPt)));
     report.unchanged = items.length - jobs.length;
     let media = 0;
     for (let k = 0; k < jobs.length; k++) {
@@ -228,6 +234,16 @@
           tex = root.Omml.toLatex(j.obj);
           if (!tex || !tex.trim()) throw Object.assign(new Error('leer'), {userText: 'Formel ist leer'});
         } catch (e) { why = e.userText || 'Word-Formel ließ sich nicht lesen'; tex = null; }
+      } else if (j.kind === 'mt') {
+        font = stdFont;
+        pt = opts.applyPt && opts.pt ? +opts.pt : j.pt;
+        // MathType setzt Brüche auch im Fließtext übereinander, wie der alte Formel-Editor
+        mode = 'sci';
+        pad = standsAlone(textOf(j.para)) ? 0 : 0.12;
+        try {
+          tex = root.MathML.toLatex(j.mathml);
+          if (!tex || !tex.trim()) throw Object.assign(new Error('leer'), {userText: 'Formel ist leer'});
+        } catch (e) { why = e.userText || 'MathType-Formel ließ sich nicht lesen'; tex = null; }
       } else {
         font = stdFont;
         pt = opts.applyPt && opts.pt ? +opts.pt : j.textPt;
@@ -273,11 +289,11 @@
         }
         j.out = j.runOpen + setRPr(j.rPr, 'position', -Math.round(img.dpt * 2)) + drawingXml(newId(), ridPng, ridSvg, img, 'FORMEL:' + JSON.stringify(m)) + '</w:r>';
         j.from = j.rs; j.to = j.reEnd + 6;
-        if (j.kind === 'old') report.converted++; else report.reformatted++;
+        if (j.kind === 'old' || j.kind === 'mt') report.converted++; else report.reformatted++;
       } else {
         if (!why) why = 'Formel steht an einer ungewöhnlichen Stelle';
         report.problems.push({number: j.number, where: j.where, why, tex});
-        if (j.kind === 'omml') continue;              // bleibt als Word-Formel stehen
+        if (j.kind === 'omml' || j.kind === 'mt') continue;     // bleibt als Word- bzw. MathType-Formel stehen
         if (j.simple) { j.out = j.runOpen + setRPr(j.rPr, 'highlight', 'yellow') + xml.slice(j.start, j.reEnd + 6); j.from = j.rs; j.to = j.reEnd + 6; }
       }
     }
