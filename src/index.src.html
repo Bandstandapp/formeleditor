@@ -767,9 +767,14 @@ function init() {
       gap = at.type === 'mord' && /^[0-9]$/.test(at.value || '') && !at.subscript && !at.superscript ? '\\:' : '\\ ';
       return;
     }
-    if (e.key === 'Shift' || !gap) return;
-    const g = gap; gap = '';
-    if (e.key.length === 1 && !/[=+\-*<>\/^_)\]},.;:!|·×−]/.test(e.key)) mf.insert(g, {format: 'latex'});
+    if (e.key === 'Shift') return;
+    if (gap) {
+      const g = gap; gap = '';
+      if (e.key.length === 1 && !/[=+\-*<>\/^_)\]},.;:!|·×−]/.test(e.key)) mf.insert(g, {format: 'latex'});
+    }
+    // Schrägstrich macht einen Bruch. MathLive erkennt das im Safari auf dem Mac (Word) nicht, weil es dort die
+    // deutsche Tastatur nicht kennt (/ liegt auf Umschalt+7) und dann nur einen Schrägstrich setzt.
+    if (e.key === '/') { e.preventDefault(); e.stopPropagation(); mf.executeCommand(['insert', '\\frac{#@}{#?}']); }
   }, {capture: true});
   mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); syncTextMode(); });
   mf.addEventListener('selection-change', syncTextMode);

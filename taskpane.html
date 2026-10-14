@@ -775,9 +775,14 @@ function init() {
       gap = at.type === 'mord' && /^[0-9]$/.test(at.value || '') && !at.subscript && !at.superscript ? '\\:' : '\\ ';
       return;
     }
-    if (e.key === 'Shift' || !gap) return;
-    const g = gap; gap = '';
-    if (e.key.length === 1 && !/[=+\-*<>\/^_)\]},.;:!|·×−]/.test(e.key)) mf.insert(g, {format: 'latex'});
+    if (e.key === 'Shift') return;
+    if (gap) {
+      const g = gap; gap = '';
+      if (e.key.length === 1 && !/[=+\-*<>\/^_)\]},.;:!|·×−]/.test(e.key)) mf.insert(g, {format: 'latex'});
+    }
+    // Schrägstrich macht einen Bruch. MathLive erkennt das im Safari auf dem Mac (Word) nicht, weil es dort die
+    // deutsche Tastatur nicht kennt (/ liegt auf Umschalt+7) und dann nur einen Schrägstrich setzt.
+    if (e.key === '/') { e.preventDefault(); e.stopPropagation(); mf.executeCommand(['insert', '\\frac{#@}{#?}']); }
   }, {capture: true});
   mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); syncTextMode(); });
   mf.addEventListener('selection-change', syncTextMode);
@@ -810,19 +815,19 @@ body.addin .settings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 body.addin .seg button { padding: 6px 10px; }
 body.addin #fonts small { display: none; }
 </style>
-<script>window.FE_VERSION = {"version": "1.9.0", "datum": "2026-10-14", "neu": "Formeln sind schmaler, fast so eng wie beim alten MathType. Die Leertaste setzt Abstände und springt am Ende einer Hochzahl oder eines Index heraus. „Normaler Text“ schreibt Wörter mit Leerzeichen. Neuer Baustein für Index und Hochzahl vorn (wie bei ¹₁H). Formeln aus dem heutigen MathType lassen sich anklicken, bearbeiten und umwandeln. Das Lineal wirkt nur noch auf Formel-Absätze; nach Return geht es mit normalem Text weiter."};</script>
-<script src="eqn3.js?v=1.9.0"></script>
-<script src="omml.js?v=1.9.0"></script>
-<script src="mathml.js?v=1.9.0"></script>
-<script src="convert.js?v=1.9.0"></script>
-<script src="addin.js?v=1.9.0"></script>
-<script src="layout.js?v=1.9.0"></script>
-<script src="bausteine.js?v=1.9.0"></script>
-<script src="history.js?v=1.9.0"></script>
-<script src="bulk.js?v=1.9.0"></script>
-<script src="lineal.js?v=1.9.0"></script>
-<script src="nummern.js?v=1.9.0"></script>
-<script src="setup.js?v=1.9.0"></script>
-<script src="melden.js?v=1.9.0"></script>
+<script>window.FE_VERSION = {"version": "1.9.1", "datum": "2026-10-14", "neu": "Nach einer Formel mit Nummer geht es nach Return mit normalem Text weiter, ohne Einzug und Tabstopp. Der Schrägstrich / macht auf dem Mac wieder einen Bruch."};</script>
+<script src="eqn3.js?v=1.9.1"></script>
+<script src="omml.js?v=1.9.1"></script>
+<script src="mathml.js?v=1.9.1"></script>
+<script src="convert.js?v=1.9.1"></script>
+<script src="addin.js?v=1.9.1"></script>
+<script src="layout.js?v=1.9.1"></script>
+<script src="bausteine.js?v=1.9.1"></script>
+<script src="history.js?v=1.9.1"></script>
+<script src="bulk.js?v=1.9.1"></script>
+<script src="lineal.js?v=1.9.1"></script>
+<script src="nummern.js?v=1.9.1"></script>
+<script src="setup.js?v=1.9.1"></script>
+<script src="melden.js?v=1.9.1"></script>
 </body>
 </html>
