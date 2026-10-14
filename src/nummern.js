@@ -185,6 +185,7 @@
   // Eigene Absatzvorlage „Formel (Editor)“ mit „Standard“ als Folgeabsatz: Nach Return hinter einer Formel
   // geht es mit normalem Text weiter, ohne den Einzug und den Tabstopp aus dem Lineal (wie bei MathType).
   const STIL = 'Formel (Editor)';
+  const LUFT = 6;                         // Abstand über und unter Formel-Absätzen in pt
   let stilOk = false;
   async function stil(ctx, para) {
     try {
@@ -200,6 +201,13 @@
           if (normal) { st.baseStyle = normal; st.nextParagraphStyle = normal; }
           await ctx.sync();
         }
+        // Etwas Luft über und unter jeder Formel, damit Formeln nicht aneinanderstoßen (auch in älteren Dokumenten)
+        try {
+          const st = ctx.document.getStyles().getByNameOrNullObject(STIL);
+          st.load('isNullObject');
+          await ctx.sync();
+          if (!st.isNullObject) { st.paragraphFormat.spaceBefore = LUFT; st.paragraphFormat.spaceAfter = LUFT; await ctx.sync(); }
+        } catch (e) {}
         stilOk = true;
       }
       para.style = STIL;
