@@ -782,6 +782,12 @@ function init() {
     // deutsche Tastatur nicht kennt (/ liegt auf Umschalt+7) und dann nur einen Schrägstrich setzt.
     if (e.key === '/') { e.preventDefault(); e.stopPropagation(); mf.executeCommand(['insert', '\\frac{#@}{#?}']); }
   }, {capture: true});
+  // Kommt der Schrägstrich ohne passenden Tastendruck an (Mac-Tastatur, Fernsteuerung), dann hier
+  mf.addEventListener('beforeinput', e => {
+    if (e.data !== '/' || mf.mode !== 'math') return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (e.target === mf) mf.executeCommand(['insert', '\\frac{#@}{#?}']);
+  }, {capture: true});
   mf.addEventListener('mode-change', () => { if (mf.mode === 'latex') setTimeout(leaveLatex, 0); syncTextMode(); });
   mf.addEventListener('selection-change', syncTextMode);
   mf.addEventListener('input', () => { clearTimeout(window.__t); window.__t = setTimeout(show, 250); });
