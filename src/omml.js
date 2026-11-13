@@ -135,6 +135,7 @@
           const type = val(kid(n, 'fPr'), 'type');
           const a = arg(kid(n, 'num')), b = arg(kid(n, 'den'));
           if (type === 'lin') return group(a) + '/' + group(b);
+          if (type === 'skw') return '{}^{' + a + '}/_{' + b + '}';   // schräger Bruch
           if (type === 'noBar') return '\\genfrac{}{}{0pt}{}{' + a + '}{' + b + '}';
           return '\\frac{' + a + '}{' + b + '}';
         }

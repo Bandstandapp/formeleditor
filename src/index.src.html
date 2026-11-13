@@ -221,6 +221,7 @@ const LAMBDABAR = '{\\rlap{\\kern0.17em\\rule[0.43em]{0.33em}{0.042em}}\\lambda\
 const TOOLS = {
   aufbau: [
     {g: '<span class="fr"><span><i>a</i></span><span><i>b</i></span></span>', n: 'Bruch', ins: '\\frac{#@}{#?}'},
+    {g: '<sup style="font-size:.6em"><i>a</i></sup>/<sub style="font-size:.6em"><i>b</i></sub>', n: 'Schräger Bruch', ins: '{}^{#@}/_{#?}'},
     {g: '<i>x</i><sup>n</sup>', n: 'Hochzahl', ins: '#@^{#?}'},
     {g: '<i>x</i><sub>n</sub>', n: 'Index', ins: '#@_{#?}'},
     {g: '<i>x</i><span style="display:inline-grid;font-size:.55em;line-height:1;vertical-align:middle;margin-left:.05em"><span>2</span><span>n</span></span>', n: 'Index und Hochzahl', ins: '#@_{#?}^{#?}'},
@@ -333,6 +334,7 @@ function countItems(nodes) {
   let n = 0, i = 0;
   while (i < nodes.length) {
     const x = nodes[i];
+    if (slantAt(nodes, i)) { i += 6; n++; continue; }
     if (x.t === 'h' && (x.v === '^' || x.v === '_')) { i += 2; continue; }
     if (x.t === 'c' && SPACE.has(x.v)) { i++; continue; }
     if (x.t === 'c' && x.v === 'left') {
@@ -351,17 +353,35 @@ function countItems(nodes) {
   return n;
 }
 function hasTopOp(nodes) { return nodes.some(x => (x.t === 'h' && '+-=<>'.includes(x.v)) || (x.t === 'c' && ['pm', 'mp', 'approx', 'le', 'ge', 'ne'].includes(x.v))); }
+function linFrac(num, den, m, script) {
+  let a = ser(tf(num, m, script)), b = ser(tf(den, m, script));
+  if (hasTopOp(num)) a = '(' + a + ')';
+  if (countItems(den) > 1) b = '(' + b + ')';
+  return '{' + a + '/' + b + '}';
+}
+const isEmptyGroup = x => x && x.t === 'g' && !x.c.length;
+const isTok = (x, t, v) => x && x.t === t && x.v === v;
+function slantAt(n, i) {
+  if (!(isEmptyGroup(n[i]) && isTok(n[i + 1], 'h', '^') && n[i + 2] && isTok(n[i + 3], 'h', '/') && isTok(n[i + 4], 'h', '_') && n[i + 5])) return null;
+  return [argOf(n, i + 2), argOf(n, i + 5)];
+}
 function tf(nodes, m, script) {
   const out = [];
   for (let i = 0; i < nodes.length; i++) {
     const x = nodes[i];
+    // Schräger Bruch {}^{a}/_{b}: im Editor Hochzahl, Schrägstrich, Index (so bleibt er bearbeitbar),
+    // gesetzt als echter schräger Bruch wie im alten Formel-Editor, einzeilig als a/b
+    const sl = slantAt(nodes, i);
+    if (sl) {
+      i += 5;
+      if (m === 'lin') out.push({t: 'raw', v: linFrac(sl[0], sl[1], m, script)});
+      else out.push({t: 'raw', v: '\\nicefrac[]{' + ser(tf(sl[0], m, script)) + '}{' + ser(tf(sl[1], m, script)) + '}'});
+      continue;
+    }
     if (x.t === 'c' && FRAC.has(x.v)) {
       const num = argOf(nodes, i + 1), den = argOf(nodes, i + 2); i += 2;
       if (m === 'lin') {
-        let a = ser(tf(num, m, script)), b = ser(tf(den, m, script));
-        if (hasTopOp(num)) a = '(' + a + ')';
-        if (countItems(den) > 1) b = '(' + b + ')';
-        out.push({t: 'raw', v: '{' + a + '/' + b + '}'});
+        out.push({t: 'raw', v: linFrac(num, den, m, script)});
       } else {
         const cmd = (m === 'sci' && !script) ? '\\dfrac' : '\\frac';
         out.push({t: 'raw', v: cmd + '{' + ser(tf(num, m, script)) + '}{' + ser(tf(den, m, script)) + '}'});
@@ -429,8 +449,8 @@ function frameDoc(fontId) {
   body.sci .only-lin,body.lin .only-sci,body.kom .only-sci{display:none}
   </style>
   <script>
-  window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose'],paths:{mathjax:'${MJ}',fonts:'${MJFONTS}'}},
-   tex:{packages:{'[+]':['upgreek','enclose']},macros:{bm:['\\\\boldsymbol{#1}',1],lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
+  window.MathJax={loader:{load:['input/tex','output/svg','[tex]/upgreek','[tex]/enclose','[tex]/units'],paths:{mathjax:'${MJ}',fonts:'${MJFONTS}'}},
+   tex:{packages:{'[+]':['upgreek','enclose','units']},macros:{bm:['\\\\boldsymbol{#1}',1],lambdabar:'${LAMBDABAR.replace(/\\/g, '\\\\')}',lambdaslash:'${LAMBDASLASH.replace(/\\/g, '\\\\')}',hbarh:'${HBARH.replace(/\\/g, '\\\\')}',hslashd:'${HSLASHD.replace(/\\/g, '\\\\')}'}},
    output:{font:'mathjax-${fontId}',linebreaks:{inline:false}},
    svg:{fontCache:'local'},
    startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.__tight();window.__mjReady=true;if(window.__pending)window.__show(...window.__pending);}}};

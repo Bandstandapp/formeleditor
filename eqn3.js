@@ -100,6 +100,8 @@
     0x2026: '\\ldots', 0x2260: '\\ne', 0x221a: '\\surd', 0x222b: '\\int', 0x2207: '\\nabla', 0xeb04: '\\,', 0xeb02: '\\:', 0xeb05: '\\quad', 0x2032: "'",
     0x7b: '\\{', 0x7d: '\\}', 0x25: '\\%'};
   const FUNCS = new Set(['sin', 'cos', 'tan', 'cot', 'ln', 'log', 'exp', 'lim', 'max', 'min', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan']);
+  // Schräger Bruch in der Form, die der Editor bearbeiten kann und beim Setzen als schrägen Bruch zeigt
+  const SLANT = (a, b) => '{}^{' + a + '}/_{' + b + '}';
   const isAlpha = c => /^\p{L}$/u.test(String.fromCharCode(c));
   // Unbekannte Zeichen aus dem privaten Bereich (Abstände, Sonderzeichen von MT Extra) erschienen als leere Kästchen
   const ch = c => GREEK[c] || SYM[c] || (c >= 0xe000 && c <= 0xf8ff ? '' : String.fromCharCode(c));
@@ -143,6 +145,8 @@
           return s;
         }
         if (sel === 14 || sel === 255) return '\\frac{' + Li(0) + '}{' + Li(1) + '}';
+        // Schräger Bruch (tmSLFRACT): Zähler oben links, Nenner unten rechts; Variante 1 steht auf der Grundlinie wie a/b
+        if (sel === 41) return v === 1 ? '{' + Li(0) + '}/{' + Li(1) + '}' : SLANT(Li(0), Li(1));
         if (sel === 13) { const idx = Li(1); return '\\sqrt' + (idx ? '[' + idx + ']' : '') + '{' + Li(0) + '}'; }
         const FEN = {0: ['\\langle', '\\rangle'], 1: ['(', ')'], 2: ['\\{', '\\}'], 3: ['[', ']'], 4: ['|', '|'], 5: ['\\|', '\\|']};
         if (FEN[sel]) {
