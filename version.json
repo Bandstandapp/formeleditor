@@ -1,1 +1,1 @@
-{"version": "1.11.0", "datum": "2026-11-13", "neu": "Schräge Brüche wie ½ aus alten Formeln werden jetzt richtig übernommen (vorher wurde aus ½ eine 12). Neuer Baustein „Schräger Bruch“ unter Aufbau."}
+{"version": "1.12.0", "datum": "2026-11-13", "neu": "Der Malpunkt nach einer Hochzahl (B²·) rückt näher heran, wie im Formel-Editor von Word. Der Baustein · unter Einheiten setzt keinen zusätzlichen Abstand mehr davor."}

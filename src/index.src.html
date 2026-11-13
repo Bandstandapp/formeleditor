@@ -280,7 +280,7 @@ const TOOLS = {
     ['·', '\\cdot '], ['/', '/'], ['⁻¹', '^{-1}'], ['²', '^{2}'], ['³', '^{3}'],
     ...'m s kg g N J W V A T Hz Pa C K mol eV Wb F H cm mm nm km ms ns rad'.split(' ').map(u => [u, '\\mathrm{' + u + '}']),
     ['Ω', '\\Omega '], ['μm', '\\upmu\\mathrm{m}'], ['μs', '\\upmu\\mathrm{s}'], ['μ', '\\upmu '], ['°C', '^{\\circ}\\mathrm{C}'], ['Å', '\\mathrm{Å}']
-  ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true, unit: true}))
+  ].map(([g, ins, n]) => (n ? {g, ins, n} : {g, ins, sym: true, unit: true, op: /^[·\/⁻²³]/.test(g)}))
 };
 
 const ADDIN = /*@@ADDIN@@*/false;
@@ -365,6 +365,13 @@ function slantAt(n, i) {
   if (!(isEmptyGroup(n[i]) && isTok(n[i + 1], 'h', '^') && n[i + 2] && isTok(n[i + 3], 'h', '/') && isTok(n[i + 4], 'h', '_') && n[i + 5])) return null;
   return [argOf(n, i + 2), argOf(n, i + 5)];
 }
+const SMALLSPACE = new Set([',', ':', ';', '>', ' ']);
+// Folgt auf nodes[i] (über kleine Abstände hinweg) ein Malpunkt?
+function isDot(nodes, i) {
+  let k = i;
+  while (nodes[k] && nodes[k].t === 'c' && SMALLSPACE.has(nodes[k].v)) k++;
+  return !!nodes[k] && nodes[k].t === 'c' && nodes[k].v === 'cdot';
+}
 function tf(nodes, m, script) {
   const out = [];
   for (let i = 0; i < nodes.length; i++) {
@@ -398,6 +405,12 @@ function tf(nodes, m, script) {
     if (x.t === 'h' && (x.v === '^' || x.v === '_')) {
       out.push(x);
       if (nodes[i + 1]) { const a = nodes[++i]; out.push(a.t === 'g' ? {t: 'g', c: tf(a.c, m, true)} : a); }
+      // Malpunkt nach einer Hochzahl (B²·) rückt näher heran, wie im Formel-Editor von Word.
+      // Ein kleiner Abstand dazwischen (früher vom Baustein · unter Einheiten gesetzt) fällt weg.
+      if (x.v === '^' && isDot(nodes, i + 1)) {
+        while (nodes[i + 1].t === 'c' && SMALLSPACE.has(nodes[i + 1].v)) i++;
+        out.push({t: 'raw', v: '\\mkern-2mu '});
+      }
       continue;
     }
     if (x.t === 'c' && x.v === 'left') {
@@ -678,7 +691,7 @@ function useTool(t) {
   if (t.cmd) { mf.executeCommand(t.cmd); show(); }
   // Ohne Markierung gilt „Normaler Text“ bzw. „Fett“ für die nächsten Zeichen (sonst blieben sie kursiv)
   else if (wrap && empty) mf.applyStyle({variantStyle: wrap[1] === 'mathrm' ? 'up' : 'bold'});
-  else mf.executeCommand(['insert', (t.unit && /[0-9]$/.test(before) ? '\\,' : '') + t.ins, {selectionMode: 'placeholder', format: 'latex'}]);
+  else mf.executeCommand(['insert', (t.unit && !t.op && /[0-9]$/.test(before) && !/[\\^_][0-9]+$/.test(before) ? '\\,' : '') + t.ins, {selectionMode: 'placeholder', format: 'latex'}]);
   mf.focus(); setTimeout(() => mf.focus(), 0);
   document.dispatchEvent(new CustomEvent('fe-tool', {detail: t}));
 }
