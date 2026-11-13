@@ -72,6 +72,14 @@ body.addin .pick { display: grid; gap: 2px; font-size: .9rem; color: var(--muted
 body.addin select { font: inherit; font-size: 1rem; color: var(--fg); background: var(--surface); border: 2px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
 body.addin #fonts, body.addin #sizes, body.addin section[aria-label="Darstellung"] { display: none !important; }
 body.addin .paper iframe { min-height: 0; }
+.fe-fold { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; padding: 2px 6px 2px 0; border-radius: 6px; }
+.fe-fold:hover { color: var(--accent); }
+.fe-fold:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.fe-fold .tri { display: inline-block; font-size: .8em; color: var(--accent); transition: transform .15s; }
+.fe-fold[aria-expanded="true"] .tri { transform: rotate(90deg); }
+.fe-fold small { font-size: .8rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+section.fe-zu .zoomrow { display: none !important; }
+section.fe-zu .paper { height: 0; padding: 0; border: 0; box-shadow: none; overflow: hidden; visibility: hidden; margin-top: -10px; }
 .fe-draft { border: 2px solid #e07b00; border-radius: var(--r); padding: 8px 10px; display: grid; gap: 6px; background: var(--surface); }
 .fe-draft[hidden] { display: none !important; }
 .fe-draft p { margin: 0; font-size: .95rem; }
@@ -194,6 +202,25 @@ body.addin .paper iframe { min-height: 0; }
   paper.after(modeBox);
   modeBox.after(zoomRow);
   const zl = zoomRow.querySelector('label'); if (zl) zl.textContent = 'Zoom';
+
+  // Vorschau auf- und zuklappen: Dreieck vor der Überschrift. Zugeklappt verschwinden Vorschaubild und Zoom;
+  // das Bild wird dabei nur auf Höhe 0 gesetzt, weil das Einfügen in Word dieselbe Vorschau zum Setzen nutzt.
+  const vLabel = vorschau.querySelector(':scope > .label');
+  const fold = document.createElement('button');
+  fold.type = 'button'; fold.className = 'fe-fold';
+  fold.innerHTML = '<span class="tri" aria-hidden="true">▶</span><span>Vorschau</span><small></small>';
+  vLabel.firstChild.replaceWith(fold);
+  function setFold(open, keep) {
+    fold.setAttribute('aria-expanded', String(open));
+    fold.title = open ? 'Vorschau zuklappen' : 'Vorschau aufklappen';
+    fold.querySelector('small').textContent = open ? 'zuklappen' : 'aufklappen';
+    vorschau.classList.toggle('fe-zu', !open);
+    if (keep) try { localStorage.setItem('fe-vorschau', open ? 'auf' : 'zu'); } catch (e) {}
+  }
+  let foldOpen = true;
+  try { foldOpen = localStorage.getItem('fe-vorschau') !== 'zu'; } catch (e) {}
+  setFold(foldOpen, false);
+  fold.addEventListener('click', () => setFold(fold.getAttribute('aria-expanded') !== 'true', true));
 
   const pick = document.createElement('div');
   pick.className = 'pickrow';
