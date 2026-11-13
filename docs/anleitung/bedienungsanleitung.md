@@ -1,5 +1,5 @@
 # Papas Formeleditor
-: Bedienungsanleitung für Word auf dem Mac, Version 1.10.0
+: Bedienungsanleitung für Word auf dem Mac, Version 1.11.0
 
 >> Mit dem Formeleditor entstehen mathematische und physikalische Formeln in Buchqualität direkt in Word. Man setzt die Formel aus Bausteinen zusammen oder tippt sie, sieht sofort, wie sie gedruckt aussieht, und fügt sie mit einem Klick ein. Jede Formel lässt sich später wieder öffnen und ändern.
 
@@ -40,6 +40,8 @@ Unter **Zeichen** finden sich Relationszeichen, Pfeile und Sonderzeichen. Ganz v
 Caption: Sonderzeichen, vorn die Varianten von h und λ
 
 Für den Binomialkoeffizienten, also „n über k“, gibt es unter **Aufbau** den Baustein **n über k**. Er setzt zwei Kästchen übereinander in runde Klammern; oben kommt n hinein, unten k.
+
+Ein schräger Bruch wie ½ steht unter **Aufbau** als Baustein **Schräger Bruch**. Oben links kommt der Zähler hinein, unten rechts der Nenner. Alte Formeln mit schrägem Bruch werden beim Umwandeln genauso übernommen.
 
 Unter **Einheiten** stehen die gebräuchlichen Einheiten. Sie erscheinen aufrecht, wie es sich gehört, und hinter einer Zahl setzt der Editor von selbst den kleinen Abstand: Man tippt 9,81 und klickt dann auf m, auf ·, auf s und auf ⁻¹ … oder ².
 

@@ -115,6 +115,7 @@
       case 'msubsup': return base(arg(0)) + '_' + grp(arg(1)) + '^' + grp(arg(2));
       case 'mfrac': {
         if (/^0(\D|$)/.test(a.linethickness || '')) return '{' + arg(0) + '\\atop ' + arg(1) + '}';
+        if (a.bevelled === 'true') return '{}^{' + arg(0) + '}/_{' + arg(1) + '}';   // schräger Bruch
         return '\\frac{' + arg(0) + '}{' + arg(1) + '}';
       }
       case 'msqrt': return '\\sqrt{' + row(c) + '}';

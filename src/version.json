@@ -1,1 +1,1 @@
-{"version": "1.10.0", "datum": "2026-11-13", "neu": "Neuer Baustein „n über k“ (Binomialkoeffizient) unter Aufbau. Die Vorschau lässt sich mit dem kleinen Dreieck vor „Vorschau“ auf- und zuklappen."}
+{"version": "1.11.0", "datum": "2026-11-13", "neu": "Schräge Brüche wie ½ aus alten Formeln werden jetzt richtig übernommen (vorher wurde aus ½ eine 12). Neuer Baustein „Schräger Bruch“ unter Aufbau."}

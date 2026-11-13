@@ -21,7 +21,7 @@
     Sigma: 'Sigma groß Summe', Phi: 'Phi groß Fluss', Psi: 'Psi groß', Omega: 'Omega groß Ohm'};
   const NAMES = {
     '\\hbar ': 'h quer Planck reduziert Wirkungsquantum hbar', '\\hslash ': 'h quer schräg Planck', '\\lambdabar ': 'Lambda quer Compton-Wellenlänge', '\\lambdaslash ': 'Lambda quer schräg Compton',
-    '\\binom{#@}{#?}': 'Binomialkoeffizient n über k n aus k Kombinatorik', '\\partial ': 'Partiell del Ableitung rund d', '\\nabla ': 'Nabla Gradient Divergenz Rotation', '\\infty ': 'Unendlich', '\\pm ': 'Plus minus', '\\mp ': 'Minus plus',
+    '{}^{#@}/_{#?}': 'Schräger Bruch schräg Schrägstrich halb Bruch', '\\binom{#@}{#?}': 'Binomialkoeffizient n über k n aus k Kombinatorik', '\\partial ': 'Partiell del Ableitung rund d', '\\nabla ': 'Nabla Gradient Divergenz Rotation', '\\infty ': 'Unendlich', '\\pm ': 'Plus minus', '\\mp ': 'Minus plus',
     '\\cdot ': 'Mal Punkt multiplizieren Skalarprodukt', '\\times ': 'Mal Kreuz Kreuzprodukt Vektorprodukt', '=': 'Gleich', '\\approx ': 'Ungefähr gleich etwa', '\\ne ': 'Ungleich',
     '\\equiv ': 'Identisch definiert kongruent', '\\sim ': 'Proportional ähnlich Tilde Größenordnung', '\\propto ': 'Proportional', '<': 'Kleiner', '>': 'Größer', '\\le ': 'Kleiner gleich',
     '\\ge ': 'Größer gleich', '\\ll ': 'Viel kleiner', '\\gg ': 'Viel größer', '\\to ': 'Pfeil nach rechts gegen strebt', '\\Rightarrow ': 'Folgepfeil daraus folgt Implikation',
