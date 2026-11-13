@@ -162,6 +162,13 @@
           const b = val(pr, 'begChr'), e = val(pr, 'endChr'), sep = val(pr, 'sepChr');
           const l = fence(b === null ? '(' : b), r = fence(e === null ? ')' : e);
           const s = sep === null ? '|' : sep;
+          // Words „Binomialkoeffizient“: runde Klammern um einen Bruch ohne Strich → n über k
+          const es = rows(n, 'e');
+          if (l === '(' && r === ')' && es.length === 1) {
+            const only = es[0].kids.filter(x => x.name && local(x) !== 'ctrlPr');
+            if (only.length === 1 && local(only[0]) === 'f' && val(kid(only[0], 'fPr'), 'type') === 'noBar')
+              return '\\binom{' + arg(kid(only[0], 'num')) + '}{' + arg(kid(only[0], 'den')) + '}';
+          }
           const inner = rows(n, 'e').map(arg).join(s === '|' ? '\\mid ' : (SYM[s] || s));
           return '\\left' + l + (/[A-Za-z]$/.test(l) ? ' ' : '') + inner + '\\right' + r + (/[A-Za-z]$/.test(r) ? ' ' : '');
         }

@@ -234,6 +234,7 @@ const TOOLS = {
     {g: '<span style="font-size:.55em">Text</span>', n: 'Normaler Text', ins: '\\text{#@}', text: true},
     {g: '√<span style="border-top:1.5px solid currentColor"><i>x</i></span>', n: 'Wurzel', ins: '\\sqrt{#@}'},
     {g: '<sup style="font-size:.6em">n</sup>√<span style="border-top:1.5px solid currentColor"><i>x</i></span>', n: 'n-te Wurzel', ins: '\\sqrt[#?]{#@}'},
+    {g: '<span class="mx">(<span class="mz c"><span><i>n</i></span><span><i>k</i></span></span>)</span>', n: 'n über k', ins: '\\binom{#@}{#?}'},
     {g: '( )', n: 'Runde Klammern', ins: '\\left(#@\\right)'},
     {g: '[ ]', n: 'Eckige Klammern', ins: '\\left[#@\\right]'},
     {g: '{ }', n: 'Geschweifte Klammern', ins: '\\left\\{#@\\right\\}'},
@@ -329,6 +330,7 @@ function ser(nodes) {
 }
 const TEXTCMD = new Set(['text', 'textrm', 'textit', 'textbf', 'mbox']);
 const FRAC = new Set(['frac', 'dfrac', 'tfrac']);
+const BINOM = new Set(['binom', 'dbinom', 'tbinom']);   // n über k: wie ein Bruch ohne Strich, in Klammern
 const BIGOP = new Set(['sum', 'prod', 'coprod', 'bigcup', 'bigcap']);
 const SPACE = new Set([',', ';', ':', '!', ' ', 'quad', 'qquad']);
 const ARG1 = new Set(['sqrt', 'mathrm', 'mathbf', 'vec', 'hat', 'bar', 'overline', 'dot', 'ddot', 'tilde', 'text', 'operatorname', 'mathit']);
@@ -348,7 +350,7 @@ function countItems(nodes) {
       n++; continue;
     }
     if (x.t === 'h' && /[0-9.]/.test(x.v)) { while (i < nodes.length && nodes[i].t === 'h' && /[0-9.]/.test(nodes[i].v)) i++; n++; continue; }
-    if (x.t === 'c' && FRAC.has(x.v)) { i += 3; n++; continue; }
+    if (x.t === 'c' && (FRAC.has(x.v) || BINOM.has(x.v))) { i += 3; n++; continue; }
     if (x.t === 'c' && ARG1.has(x.v)) { i++; if (nodes[i] && nodes[i].t === 'h' && nodes[i].v === '[') { while (i < nodes.length && !(nodes[i].t === 'h' && nodes[i].v === ']')) i++; i++; } i++; n++; continue; }
     n++; i++;
   }
@@ -370,6 +372,13 @@ function tf(nodes, m, script) {
         const cmd = (m === 'sci' && !script) ? '\\dfrac' : '\\frac';
         out.push({t: 'raw', v: cmd + '{' + ser(tf(num, m, script)) + '}{' + ser(tf(den, m, script)) + '}'});
       }
+      continue;
+    }
+    if (x.t === 'c' && BINOM.has(x.v)) {
+      // Wissenschaftlich groß wie ein Bruch; sonst in Textgröße, damit die Zeile nicht aufgeht
+      const top = argOf(nodes, i + 1), bot = argOf(nodes, i + 2); i += 2;
+      const cmd = (m === 'sci' && !script) ? '\\dbinom' : '\\binom';
+      out.push({t: 'raw', v: cmd + '{' + ser(tf(top, m, script)) + '}{' + ser(tf(bot, m, script)) + '}'});
       continue;
     }
     if (x.t === 'h' && (x.v === '^' || x.v === '_')) {

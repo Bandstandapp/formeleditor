@@ -47,6 +47,12 @@
         const env = {'()': 'pmatrix', '[]': 'bmatrix', '||': 'vmatrix', '{}': 'Bmatrix', '‖‖': 'Vmatrix'}[textIn(n).trim() + textIn(list[i + 2]).trim()];
         if (env) { out.push(table(list[i + 1], env)); i += 2; continue; }
       }
+      // ( Bruch ohne Strich ) → n über k
+      if (local(n) === 'mo' && textIn(n).trim() === '(' && list[i + 1] && local(list[i + 1]) === 'mfrac' && /^0(\D|$)/.test((list[i + 1].attrs || {}).linethickness || '') &&
+          list[i + 2] && local(list[i + 2]) === 'mo' && textIn(list[i + 2]).trim() === ')') {
+        const f = els(list[i + 1]);
+        out.push('\\binom{' + (f[0] ? node(f[0]) : '') + '}{' + (f[1] ? node(f[1]) : '') + '}'); i += 2; continue;
+      }
       if (local(n) === 'mo' && textIn(n).trim() === '{' && list[i + 1] && local(list[i + 1]) === 'mtable' && i + 2 === list.length) {
         out.push(table(list[i + 1], 'cases')); i += 1; continue;
       }
